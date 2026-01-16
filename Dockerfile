@@ -33,9 +33,11 @@ RUN CGO_ENABLED=1 go build -o server .
 # ---- Runtime ----
 FROM alpine:3.20
 WORKDIR /app
+RUN apk add --no-cache sqlite
 
 COPY --from=gobuild /app/server /app/server
 COPY --from=gobuild /app/static /app/static
+COPY --from=gobuild /app/db /app/db
 
 # Render provides PORT (default 10000) :contentReference[oaicite:1]{index=1}
-CMD ["sh","-c","GO_PORT=${PORT:-10000} ENV=production ./server"]
+CMD ["sh","-c","mkdir -p /app/db && test -f /app/db/main.db || sqlite3 /app/db/main.db < /app/db/schema.sql; GO_PORT=${PORT:-10000} ENV=production ./server"]
