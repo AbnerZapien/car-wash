@@ -1,0 +1,6 @@
+.git
+tmp
+js/node_modules
+js/dist
+db/main.db
+.env
