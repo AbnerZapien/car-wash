@@ -13,19 +13,7 @@ interface AuthStorageData {
 
 export function dashboardStore() {
   return {
-  
-  manageSubscription() {
-      console.log("Navigate to subscription management");
-      window.location.assign("/account");
-    },
-
-    viewHistory() {
-      console.log("Navigate to full history");
-      window.location.assign("/history");
-    },
-
-
-    user: null as User | null,
+user: null as User | null,
     subscription: null as Subscription | null,
     washHistory: [] as WashHistory[],
     loading: true,
@@ -79,17 +67,15 @@ export function dashboardStore() {
 
       this.loading = false;
     },
-
     manageSubscription() {
-      console.log("Navigate to subscription management");
       window.location.assign("/account");
     },
+
     viewHistory() {
-      console.log("Navigate to full history");
       window.location.assign("/history");
     },
 
-    printCode() {
+printCode() {
       window.print();
     },
 

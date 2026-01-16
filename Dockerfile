@@ -4,10 +4,11 @@ WORKDIR /app/js
 
 # Install deps
 COPY js/package.json js/pnpm-lock.yaml* ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN corepack enable && pnpm config set ignore-scripts false && pnpm install --frozen-lockfile
 
 # Build
 COPY js/ ./
+COPY web/ /app/web/
 RUN pnpm build
 
 # ---- Go build ----
