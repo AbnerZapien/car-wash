@@ -22,7 +22,7 @@ COPY . .
 
 # Copy Vite build output into server static folder.
 # If your Vite outputs to js/dist, this will populate static/dist.
-COPY --from=webbuild /app/js/dist ./static/dist
+COPY --from=webbuild /app/static/dist ./static/dist
 
 # Ensure templ is generated if you don't commit *_templ.go
 RUN go install github.com/a-h/templ/cmd/templ@latest && templ generate
