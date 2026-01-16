@@ -11,7 +11,7 @@ COPY js/ ./
 RUN pnpm build
 
 # ---- Go build ----
-FROM golang:1.22-alpine AS gobuild
+FROM golang:1.23.2-alpine AS gobuild
 WORKDIR /app
 
 COPY go.mod go.sum ./
