@@ -14,6 +14,7 @@ RUN pnpm build
 # ---- Go build ----
 FROM golang:1.23.2-alpine AS gobuild
 WORKDIR /app
+RUN apk add --no-cache build-base
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -27,7 +28,7 @@ COPY --from=webbuild /app/static/dist ./static/dist
 # Ensure templ is generated if you don't commit *_templ.go
 RUN go install github.com/a-h/templ/cmd/templ@latest && templ generate
 
-RUN CGO_ENABLED=0 go build -o server .
+RUN CGO_ENABLED=1 go build -o server .
 
 # ---- Runtime ----
 FROM alpine:3.20
