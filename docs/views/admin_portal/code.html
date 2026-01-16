@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hedgestone - Carwash Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#4F46E5",
+            "background-light": "#F8FAFC",
+            "background-dark": "#18181B",
+            "card-light": "#FFFFFF",
+            "card-dark": "#27272A",
+            "text-light": "#334155",
+            "text-dark": "#E2E8F0",
+            "subtext-light": "#64748B",
+            "subtext-dark": "#94A3B8",
+            "border-light": "#E2E8F0",
+            "border-dark": "#3F3F46"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem",
+            lg: "0.75rem",
+            xl: "1rem"
+          },
+        },
+      },
+    };
+  </script>
+<style>
+    .material-icons-outlined {
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-sans">
+<div class="flex h-screen">
+<aside class="w-64 bg-card-light dark:bg-card-dark flex flex-col border-r border-border-light dark:border-border-dark">
+<div class="px-6 py-4 flex items-center space-x-2">
+<div class="bg-primary p-2 rounded-lg">
+<span class="material-icons-outlined text-white">waves</span>
+</div>
+<h1 class="text-xl font-bold text-text-light dark:text-text-dark">Hedgestone</h1>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-2">
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">dashboard</span> Dashboard
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">people</span> Members
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">directions_car</span> Usage
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">trending_down</span> Attrition
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">support_agent</span> Attendants
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">campaign</span> Promotions
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">assessment</span> Revenue
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">paid</span> Income
+        </a>
+<a class="flex items-center px-4 py-2 text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark rounded-lg" href="#">
+<span class="material-icons-outlined mr-3">widgets</span> Widget
+        </a>
+</nav>
+<div class="px-6 py-4">
+<p class="text-xs text-subtext-light dark:text-subtext-dark">Hedgestone - Carwash</p>
+</div>
+</aside>
+<main class="flex-1 p-8 overflow-y-auto">
+<header class="flex justify-between items-center mb-8">
+<div class="relative w-full max-w-md">
+<span class="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-subtext-light dark:text-subtext-dark">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg text-text-light dark:text-text-dark placeholder-subtext-light dark:placeholder-subtext-dark focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Search for data..." type="text"/>
+</div>
+<div class="flex items-center space-x-4">
+<div class="flex items-center space-x-2">
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark">location_on</span>
+<span class="text-text-light dark:text-text-dark font-medium">American Auto Wash (FKA ...</span>
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark">expand_more</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-text-light dark:text-text-dark">ryanburbes@yahoo.com</span>
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark">expand_more</span>
+</div>
+</div>
+</header>
+<p class="text-sm text-subtext-light dark:text-subtext-dark mb-8">Data captured from September 1, 2025 to September 17, 2025</p>
+<h2 class="text-2xl font-bold text-text-light dark:text-text-dark mb-6">Your Location Snapshot</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-sm font-medium text-subtext-light dark:text-subtext-dark uppercase tracking-wider">Active Member Count</h3>
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark text-lg">info_outline</span>
+</div>
+<p class="text-5xl font-bold text-text-light dark:text-text-dark">237</p>
+<div class="flex items-center text-green-500 text-sm font-medium mt-2">
+<span>+27%</span>
+<span class="material-icons-outlined text-base">arrow_upward</span>
+</div>
+<div class="mt-4 h-24">
+<canvas id="activeMembersChart"></canvas>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-sm font-medium text-subtext-light dark:text-subtext-dark uppercase tracking-wider">Average Usage Rate</h3>
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark text-lg">info_outline</span>
+</div>
+<p class="text-5xl font-bold text-text-light dark:text-text-dark">0.18</p>
+<p class="text-subtext-light dark:text-subtext-dark mt-2">visits per month</p>
+<div class="mt-4 h-24">
+<canvas id="usageRateChart"></canvas>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-sm font-medium text-subtext-light dark:text-subtext-dark uppercase tracking-wider">30 Day Projection</h3>
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark text-lg">info_outline</span>
+</div>
+<p class="text-5xl font-bold text-text-light dark:text-text-dark">$13,628.16</p>
+<p class="text-subtext-light dark:text-subtext-dark mt-2">in this month</p>
+<div class="mt-4 h-24">
+<canvas id="projectionChart"></canvas>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-sm font-medium text-subtext-light dark:text-subtext-dark uppercase tracking-wider">Member Demographics</h3>
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark text-lg">info_outline</span>
+</div>
+<div class="mt-4 h-32">
+<canvas id="memberDemographicsChart"></canvas>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-2xl font-bold text-text-light dark:text-text-dark">Detailed Insights</h2>
+<div class="flex items-center space-x-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark p-2 rounded-lg">
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark text-xl">calendar_today</span>
+<span class="text-text-light dark:text-text-dark font-medium">This Week</span>
+<span class="material-icons-outlined text-subtext-light dark:text-subtext-dark">expand_more</span>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-sm font-medium text-subtext-light dark:text-subtext-dark uppercase tracking-wider">Weekly Usage Heatmap</h3>
+<div class="flex items-center space-x-1 text-subtext-light dark:text-subtext-dark">
+<span class="material-icons-outlined text-lg">info_outline</span>
+<span class="material-icons-outlined text-lg">more_horiz</span>
+</div>
+</div>
+<div class="chart-container">
+<canvas id="usageHeatmapChart"></canvas>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-sm font-medium text-subtext-light dark:text-subtext-dark uppercase tracking-wider">Member Retention Trend</h3>
+<div class="flex items-center space-x-1 text-subtext-light dark:text-subtext-dark">
+<span class="material-icons-outlined text-lg">info_outline</span>
+<span class="material-icons-outlined text-lg">more_horiz</span>
+</div>
+</div>
+<div class="chart-container">
+<canvas id="retentionTrendChart"></canvas>
+</div>
+</div>
+</div>
+<h2 class="text-2xl font-bold text-text-light dark:text-text-dark mb-6">Service Performance</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-sm flex justify-between items-center">
+<span class="text-text-light dark:text-text-dark font-medium">Car Wash Service Completion Time</span>
+<div class="flex items-center space-x-2 text-subtext-light dark:text-subtext-dark">
+<span class="material-icons-outlined text-lg">info_outline</span>
+<span class="material-icons-outlined text-lg">more_horiz</span>
+<span class="material-icons-outlined text-lg">download</span>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-sm flex justify-between items-center">
+<span class="text-text-light dark:text-text-dark font-medium">Customer Satisfaction Score</span>
+<div class="flex items-center space-x-2 text-subtext-light dark:text-subtext-dark">
+<span class="material-icons-outlined text-lg">info_outline</span>
+<span class="material-icons-outlined text-lg">more_horiz</span>
+<span class="material-icons-outlined text-lg">download</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+<script>
+    // Chart for Active Members
+    const activeMembersCtx = document.getElementById('activeMembersChart').getContext('2d');
+    const activeMembersChart = new Chart(activeMembersCtx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Active Members',
+                data: [200, 215, 230, 225, 240, 250, 237],
+                borderColor: '#4F46E5',
+                tension: 0.4,
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            }
+        }
+    });
+
+    // Chart for Average Usage Rate (Simple Gauge-like)
+    const usageRateCtx = document.getElementById('usageRateChart').getContext('2d');
+    const usageRateChart = new Chart(usageRateCtx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [0.18, 0.82], // Represents 0.18 usage, 0.82 remaining
+                backgroundColor: ['#4F46E5', '#E2E8F0'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            rotation: -1.25 * Math.PI,
+            circumference: Math.PI,
+            tooltips: { enabled: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            }
+        }
+    });
+
+    // Chart for 30 Day Projection (Bar Chart)
+    const projectionCtx = document.getElementById('projectionChart').getContext('2d');
+    const projectionChart = new Chart(projectionCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'Projection ($)',
+                data: [3000, 3500, 4000, 3128.16],
+                backgroundColor: '#4F46E5',
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            }
+        }
+    });
+
+    // Chart for Member Demographics (Pie Chart)
+    const memberDemographicsCtx = document.getElementById('memberDemographicsChart').getContext('2d');
+    const memberDemographicsChart = new Chart(memberDemographicsCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Age 18-25', 'Age 26-35', 'Age 36-50', 'Age 50+'],
+            datasets: [{
+                data: [30, 45, 20, 5],
+                backgroundColor: ['#4F46E5', '#6366F1', '#8B5CF6', '#A78BFA'],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: 'var(--text-subtext-dark)'
+                    }
+                },
+                tooltip: { enabled: true }
+            }
+        }
+    });
+
+    // Chart for Weekly Usage Heatmap (Simulated)
+    const usageHeatmapCtx = document.getElementById('usageHeatmapChart').getContext('2d');
+    const usageHeatmapChart = new Chart(usageHeatmapCtx, {
+        type: 'heatmap', // Note: Chart.js doesn't natively support 'heatmap' type. This is a placeholder concept.
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Usage Intensity',
+                data: [
+                    { x: 'Mon', y: 'Morning', value: 0.8 },
+                    { x: 'Mon', y: 'Afternoon', value: 0.6 },
+                    { x: 'Mon', y: 'Evening', value: 0.4 },
+                    { x: 'Tue', y: 'Morning', value: 0.7 },
+                    { x: 'Tue', y: 'Afternoon', value: 0.9 },
+                    { x: 'Tue', y: 'Evening', value: 0.5 },
+                    // ... more data
+                ],
+                backgroundColor: (context) => {
+                    const value = context.raw.value;
+                    if (value > 0.8) return 'rgba(79, 70, 229, 0.8)'; // Primary color for high usage
+                    if (value > 0.5) return 'rgba(79, 70, 229, 0.6)';
+                    if (value > 0.2) return 'rgba(79, 70, 229, 0.4)';
+                    return 'rgba(226, 232, 240, 0.3)'; // Light background for low usage
+                },
+                width: ({ chart }) => chart.chartArea.width / 7,
+                height: ({ chart }) => chart.chartArea.height / 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: { display: true, text: 'Day of Week' },
+                    grid: { display: false }
+                },
+                y: {
+                    title: { display: true, text: 'Time of Day' },
+                    grid: { display: false }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw.value}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Chart for Member Retention Trend (Line with Zoom/Pan simulation)
+    const retentionTrendCtx = document.getElementById('retentionTrendChart').getContext('2d');
+    const retentionTrendChart = new Chart(retentionTrendCtx, {
+        type: 'line',
+        data: {
+            labels: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`),
+            datasets: [{
+                label: 'Member Retention (%)',
+                data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 10) + 90), // Random retention between 90-99%
+                borderColor: '#4F46E5',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: { display: true, text: 'Days' },
+                    grid: { display: false },
+                    // Basic zoom/pan simulation through label manipulation might be complex for a simple example.
+                    // For full interactivity, a dedicated library or custom plugins would be needed.
+                },
+                y: {
+                    title: { display: true, text: 'Retention (%)' },
+                    min: 85,
+                    max: 100,
+                    grid: { color: 'rgba(226, 232, 240, 0.2)' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            }
+        }
+    });
+
+</script>
+</body>
+</html>

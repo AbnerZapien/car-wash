@@ -1,0 +1,23 @@
+# env / secrets
+.env
+
+# build / temp
+tmp/
+dist/
+*.log
+
+# node
+js/node_modules/
+js/dist/
+js/node_modules/.vite/
+
+# OS/editor
+.DS_Store
+.vscode/
+
+# databases
+db/main.db
+
+# Go
+*.exe
+*.out

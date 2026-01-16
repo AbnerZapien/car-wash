@@ -1,0 +1,479 @@
+package admin
+
+import "github.com/edlingao/hexago/web/templates"
+
+type PortalVM struct {
+	Error error
+}
+
+templ Portal(vm PortalVM) {
+	@templates.Index(templates.IndexVM{
+		Title: "Admin Portal - Hedgestone Carwash",
+		Error: vm.Error,
+	}) {
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+		<style>
+			.chart-container {
+				position: relative;
+				height: 300px;
+				width: 100%;
+			}
+			.nav-active {
+				background-color: #F1F5F9;
+				color: #4F46E5;
+			}
+			[x-cloak] { display: none !important; }
+			@media (max-width: 768px) {
+				.chart-container { height: 200px; }
+			}
+		</style>
+		<div class="flex h-screen bg-slate-50" x-data="adminStore" x-init="init()">
+			<!-- Mobile Backdrop -->
+			<div
+				x-show="sidebarOpen"
+				x-transition:enter="transition-opacity ease-out duration-300"
+				x-transition:enter-start="opacity-0"
+				x-transition:enter-end="opacity-100"
+				x-transition:leave="transition-opacity ease-in duration-200"
+				x-transition:leave-start="opacity-100"
+				x-transition:leave-end="opacity-0"
+				@click="sidebarOpen = false"
+				class="fixed inset-0 bg-black/50 z-40 md:hidden"
+				x-cloak
+			></div>
+			<!-- Sidebar -->
+			<aside
+				class="fixed md:relative inset-y-0 left-0 z-50 w-64 bg-white flex flex-col border-r border-slate-200 transform transition-transform duration-300 ease-in-out md:transform-none"
+				:class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+			>
+				<div class="px-6 py-4 flex items-center justify-between">
+					<div class="flex items-center space-x-2">
+						<div class="bg-indigo-600 p-2 rounded-lg">
+							<span class="material-icons-outlined text-white">waves</span>
+						</div>
+						<h1 class="text-xl font-bold text-slate-800">Hedgestone</h1>
+					</div>
+					<button @click="sidebarOpen = false" class="md:hidden p-1 text-slate-400 hover:text-slate-600">
+						<span class="material-icons-outlined">close</span>
+					</button>
+				</div>
+				<nav class="flex-1 px-4 py-4 space-y-1">
+					<template x-for="item in [
+						{ id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+						{ id: 'members', icon: 'people', label: 'Members' },
+						{ id: 'usage', icon: 'directions_car', label: 'Usage' },
+						{ id: 'attrition', icon: 'trending_down', label: 'Attrition' },
+						{ id: 'attendants', icon: 'support_agent', label: 'Attendants' },
+						{ id: 'promotions', icon: 'campaign', label: 'Promotions' },
+						{ id: 'revenue', icon: 'assessment', label: 'Revenue' },
+						{ id: 'income', icon: 'paid', label: 'Income' },
+						{ id: 'widget', icon: 'widgets', label: 'Widget' }
+					]" :key="item.id">
+						<a
+							@click.prevent="navigate(item.id); sidebarOpen = false"
+							class="flex items-center px-4 py-3 text-slate-500 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+							:class="activeNav === item.id ? 'nav-active' : ''"
+						>
+							<span class="material-icons-outlined mr-3" x-text="item.icon"></span>
+							<span x-text="item.label"></span>
+						</a>
+					</template>
+				</nav>
+				<div class="px-6 py-4 border-t border-slate-200">
+					<p class="text-xs text-slate-400">Hedgestone - Carwash</p>
+				</div>
+			</aside>
+			<!-- Main Content -->
+			<main class="flex-1 p-4 md:p-8 overflow-y-auto md:ml-0">
+				<!-- Header -->
+				<header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8">
+					<div class="flex items-center gap-3">
+						<!-- Mobile Menu Button -->
+						<button @click="sidebarOpen = true" class="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+							<span class="material-icons-outlined">menu</span>
+						</button>
+						<div class="relative flex-1 md:w-80">
+							<span class="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+							<input
+								x-model="searchQuery"
+								@input="search($event.target.value)"
+								class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								placeholder="Search for data..."
+								type="text"
+							/>
+						</div>
+					</div>
+					<div class="flex items-center justify-between md:justify-end space-x-4">
+						<div class="flex items-center space-x-1 md:space-x-2 cursor-pointer">
+							<span class="material-icons-outlined text-slate-400">location_on</span>
+							<span class="text-slate-800 font-medium hidden sm:inline" x-text="locationName"></span>
+							<span class="material-icons-outlined text-slate-400">expand_more</span>
+						</div>
+						<div class="flex items-center space-x-1 md:space-x-2">
+							<span class="material-icons-outlined text-slate-400 sm:hidden">person</span>
+							<span class="text-slate-800 hidden sm:inline">admin@hedgestone.com</span>
+							<span class="material-icons-outlined text-slate-400">expand_more</span>
+						</div>
+					</div>
+				</header>
+				<!-- Date Range Info -->
+				<p class="text-sm text-slate-500 mb-6 md:mb-8">
+					Data captured from <span x-text="dateRangeLabel"></span>
+				</p>
+				<!-- Location Snapshot -->
+				<h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">Your Location Snapshot</h2>
+				<!-- Dashboard Content -->
+				<div x-show="activeNav === 'dashboard'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10">
+					<!-- Active Member Count -->
+					<div class="bg-white p-4 md:p-6 rounded-xl shadow-sm flex flex-col justify-between">
+						<div class="flex justify-between items-start mb-2 md:mb-4">
+							<h3 class="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">Active Member Count</h3>
+							<span class="material-icons-outlined text-slate-400 text-lg">info_outline</span>
+						</div>
+						<p class="text-3xl md:text-5xl font-bold text-slate-800" x-text="stats?.activeMemberCount || '—'"></p>
+						<div class="flex items-center text-green-500 text-sm font-medium mt-2">
+							<span x-text="formatPercentage(stats?.memberGrowth || 0)"></span>
+							<span class="material-icons-outlined text-base">arrow_upward</span>
+						</div>
+						<div class="mt-3 md:mt-4 h-16 md:h-24">
+							<canvas id="activeMembersChart"></canvas>
+						</div>
+					</div>
+					<!-- Average Usage Rate -->
+					<div class="bg-white p-4 md:p-6 rounded-xl shadow-sm flex flex-col justify-between">
+						<div class="flex justify-between items-start mb-2 md:mb-4">
+							<h3 class="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">Average Usage Rate</h3>
+							<span class="material-icons-outlined text-slate-400 text-lg">info_outline</span>
+						</div>
+						<p class="text-3xl md:text-5xl font-bold text-slate-800" x-text="stats?.averageUsageRate?.toFixed(2) || '—'"></p>
+						<p class="text-slate-500 text-sm mt-1 md:mt-2">visits per month</p>
+						<div class="mt-3 md:mt-4 h-16 md:h-24">
+							<canvas id="usageRateChart"></canvas>
+						</div>
+					</div>
+					<!-- 30 Day Projection -->
+					<div class="bg-white p-4 md:p-6 rounded-xl shadow-sm flex flex-col justify-between">
+						<div class="flex justify-between items-start mb-2 md:mb-4">
+							<h3 class="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">30 Day Projection</h3>
+							<span class="material-icons-outlined text-slate-400 text-lg">info_outline</span>
+						</div>
+						<p class="text-3xl md:text-5xl font-bold text-slate-800" x-text="formatCurrency(stats?.monthlyProjection || 0)"></p>
+						<p class="text-slate-500 text-sm mt-1 md:mt-2">in this month</p>
+						<div class="mt-3 md:mt-4 h-16 md:h-24">
+							<canvas id="projectionChart"></canvas>
+						</div>
+					</div>
+					<!-- Member Demographics -->
+					<div class="bg-white p-4 md:p-6 rounded-xl shadow-sm flex flex-col justify-between">
+						<div class="flex justify-between items-start mb-2 md:mb-4">
+							<h3 class="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">Member Demographics</h3>
+							<span class="material-icons-outlined text-slate-400 text-lg">info_outline</span>
+						</div>
+						<div class="mt-3 md:mt-4 h-24 md:h-32">
+							<canvas id="memberDemographicsChart"></canvas>
+						</div>
+					</div>
+				</div>
+				<!-- Detailed Insights -->
+				<div x-show="activeNav === 'dashboard'" class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-6">
+					<h2 class="text-xl md:text-2xl font-bold text-slate-800">Detailed Insights</h2>
+					<div class="flex items-center space-x-2 bg-white border border-slate-200 p-2 rounded-lg cursor-pointer self-start sm:self-auto">
+						<span class="material-icons-outlined text-slate-400 text-xl">calendar_today</span>
+						<span class="text-slate-800 font-medium text-sm md:text-base" x-text="dateRangeLabel"></span>
+						<span class="material-icons-outlined text-slate-400">expand_more</span>
+					</div>
+				</div>
+				<div x-show="activeNav === 'dashboard'" class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-10">
+					<!-- Weekly Usage Heatmap -->
+					<div class="bg-white p-4 md:p-6 rounded-xl shadow-sm">
+						<div class="flex justify-between items-start mb-3 md:mb-4">
+							<h3 class="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">Weekly Usage Heatmap</h3>
+							<div class="flex items-center space-x-1 text-slate-400">
+								<span class="material-icons-outlined text-lg">info_outline</span>
+								<span class="material-icons-outlined text-lg">more_horiz</span>
+							</div>
+						</div>
+						<div class="chart-container">
+							<canvas id="usageHeatmapChart"></canvas>
+						</div>
+					</div>
+					<!-- Member Retention Trend -->
+					<div class="bg-white p-4 md:p-6 rounded-xl shadow-sm">
+						<div class="flex justify-between items-start mb-3 md:mb-4">
+							<h3 class="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">Member Retention Trend</h3>
+							<div class="flex items-center space-x-1 text-slate-400">
+								<span class="material-icons-outlined text-lg">info_outline</span>
+								<span class="material-icons-outlined text-lg">more_horiz</span>
+							</div>
+						</div>
+						<div class="chart-container">
+							<canvas id="retentionTrendChart"></canvas>
+						</div>
+					</div>
+				</div>
+				<!-- Service Performance -->
+				<div x-show="activeNav === 'dashboard'">
+					<h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">Service Performance</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+						<div class="bg-white p-3 md:p-4 rounded-xl shadow-sm flex justify-between items-center">
+							<span class="text-slate-800 font-medium text-sm md:text-base">Car Wash Service Completion Time</span>
+							<div class="flex items-center space-x-1 md:space-x-2 text-slate-400">
+								<span class="material-icons-outlined text-lg hidden sm:inline">info_outline</span>
+								<span class="material-icons-outlined text-lg">more_horiz</span>
+								<span class="material-icons-outlined text-lg cursor-pointer hover:text-indigo-600">download</span>
+							</div>
+						</div>
+						<div class="bg-white p-3 md:p-4 rounded-xl shadow-sm flex justify-between items-center">
+							<span class="text-slate-800 font-medium text-sm md:text-base">Customer Satisfaction Score</span>
+							<div class="flex items-center space-x-1 md:space-x-2 text-slate-400">
+								<span class="material-icons-outlined text-lg hidden sm:inline">info_outline</span>
+								<span class="material-icons-outlined text-lg">more_horiz</span>
+								<span class="material-icons-outlined text-lg cursor-pointer hover:text-indigo-600">download</span>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- Members Section -->
+				<div x-show="activeNav === 'members'" x-cloak>
+					<h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">Members</h2>
+					<!-- Desktop Table View -->
+					<div class="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
+						<table class="min-w-full divide-y divide-slate-200">
+							<thead class="bg-slate-50">
+								<tr>
+									<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
+									<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
+									<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Plan</th>
+									<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+									<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+								</tr>
+							</thead>
+							<tbody class="bg-white divide-y divide-slate-200">
+								<template x-for="member in filteredMembers" :key="member.id">
+									<tr class="hover:bg-slate-50">
+										<td class="px-6 py-4 whitespace-nowrap">
+											<div class="flex items-center">
+												<div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+													<span class="text-indigo-600 font-medium" x-text="member.name.split(' ').map(n => n[0]).join('')"></span>
+												</div>
+												<div class="ml-4">
+													<div class="text-sm font-medium text-slate-900" x-text="member.name"></div>
+												</div>
+											</div>
+										</td>
+										<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500" x-text="member.email"></td>
+										<td class="px-6 py-4 whitespace-nowrap">
+											<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800" x-text="member.plan"></span>
+										</td>
+										<td class="px-6 py-4 whitespace-nowrap">
+											<span
+												class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+												:class="member.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+												x-text="member.status"
+											></span>
+										</td>
+										<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+											<button class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+											<button class="text-red-600 hover:text-red-900">Delete</button>
+										</td>
+									</tr>
+								</template>
+							</tbody>
+						</table>
+					</div>
+					<!-- Mobile Card View -->
+					<div class="md:hidden space-y-3">
+						<template x-for="member in filteredMembers" :key="member.id">
+							<div class="bg-white rounded-xl shadow-sm p-4">
+								<div class="flex items-center justify-between mb-3">
+									<div class="flex items-center">
+										<div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+											<span class="text-indigo-600 font-medium" x-text="member.name.split(' ').map(n => n[0]).join('')"></span>
+										</div>
+										<div class="ml-3">
+											<div class="text-sm font-medium text-slate-900" x-text="member.name"></div>
+											<div class="text-xs text-slate-500" x-text="member.email"></div>
+										</div>
+									</div>
+									<span
+										class="px-2 py-1 text-xs font-semibold rounded-full"
+										:class="member.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+										x-text="member.status"
+									></span>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800" x-text="member.plan"></span>
+									<div class="flex items-center space-x-3">
+										<button class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg">
+											<span class="material-icons-outlined text-lg">edit</span>
+										</button>
+										<button class="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+											<span class="material-icons-outlined text-lg">delete</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+				<!-- Placeholder for other nav sections -->
+				<div x-show="!['dashboard', 'members'].includes(activeNav)" x-cloak>
+					<div class="bg-white rounded-xl shadow-sm p-12 text-center">
+						<span class="material-icons-outlined text-6xl text-slate-300 mb-4">construction</span>
+						<h3 class="text-xl font-medium text-slate-600 mb-2">Coming Soon</h3>
+						<p class="text-slate-400">This section is under development.</p>
+					</div>
+				</div>
+			</main>
+		</div>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				setTimeout(initCharts, 500);
+			});
+
+			function initCharts() {
+				// Active Members Chart
+				const activeMembersCtx = document.getElementById('activeMembersChart');
+				if (activeMembersCtx) {
+					new Chart(activeMembersCtx.getContext('2d'), {
+						type: 'line',
+						data: {
+							labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+							datasets: [{
+								label: 'Active Members',
+								data: [200, 215, 230, 225, 240, 250, 237],
+								borderColor: '#4F46E5',
+								tension: 0.4,
+								fill: false,
+								pointRadius: 0
+							}]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							scales: { x: { display: false }, y: { display: false } },
+							plugins: { legend: { display: false } }
+						}
+					});
+				}
+
+				// Usage Rate Chart (Gauge)
+				const usageRateCtx = document.getElementById('usageRateChart');
+				if (usageRateCtx) {
+					new Chart(usageRateCtx.getContext('2d'), {
+						type: 'doughnut',
+						data: {
+							datasets: [{
+								data: [0.18, 0.82],
+								backgroundColor: ['#4F46E5', '#E2E8F0'],
+								borderWidth: 0
+							}]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							cutout: '70%',
+							rotation: -1.25 * Math.PI,
+							circumference: Math.PI,
+							plugins: { legend: { display: false }, tooltip: { enabled: false } }
+						}
+					});
+				}
+
+				// Projection Chart
+				const projectionCtx = document.getElementById('projectionChart');
+				if (projectionCtx) {
+					new Chart(projectionCtx.getContext('2d'), {
+						type: 'bar',
+						data: {
+							labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+							datasets: [{
+								label: 'Projection ($)',
+								data: [3000, 3500, 4000, 3128],
+								backgroundColor: '#4F46E5',
+								borderRadius: 5
+							}]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							scales: { x: { display: false }, y: { display: false } },
+							plugins: { legend: { display: false } }
+						}
+					});
+				}
+
+				// Demographics Chart
+				const demographicsCtx = document.getElementById('memberDemographicsChart');
+				if (demographicsCtx) {
+					new Chart(demographicsCtx.getContext('2d'), {
+						type: 'pie',
+						data: {
+							labels: ['18-24', '25-34', '35-44', '45-54', '55+'],
+							datasets: [{
+								data: [15, 35, 25, 15, 10],
+								backgroundColor: ['#4F46E5', '#7C3AED', '#EC4899', '#F59E0B', '#10B981'],
+								hoverOffset: 4
+							}]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } }
+						}
+					});
+				}
+
+				// Usage Heatmap (Bar chart simulation)
+				const heatmapCtx = document.getElementById('usageHeatmapChart');
+				if (heatmapCtx) {
+					new Chart(heatmapCtx.getContext('2d'), {
+						type: 'bar',
+						data: {
+							labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+							datasets: [
+								{ label: 'Morning', data: [12, 19, 15, 17, 14, 22, 25], backgroundColor: '#C7D2FE' },
+								{ label: 'Afternoon', data: [18, 25, 22, 20, 24, 30, 28], backgroundColor: '#818CF8' },
+								{ label: 'Evening', data: [8, 12, 10, 15, 20, 18, 12], backgroundColor: '#4F46E5' }
+							]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							scales: { x: { stacked: true }, y: { stacked: true, display: false } },
+							plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+						}
+					});
+				}
+
+				// Retention Trend
+				const retentionCtx = document.getElementById('retentionTrendChart');
+				if (retentionCtx) {
+					new Chart(retentionCtx.getContext('2d'), {
+						type: 'line',
+						data: {
+							labels: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`),
+							datasets: [{
+								label: 'Retention (%)',
+								data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 10) + 90),
+								borderColor: '#4F46E5',
+								tension: 0.3,
+								fill: false
+							}]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							scales: {
+								x: { display: false },
+								y: { min: 85, max: 100, grid: { color: 'rgba(226, 232, 240, 0.5)' } }
+							},
+							plugins: { legend: { display: false } }
+						}
+					});
+				}
+			}
+		</script>
+	}
+}

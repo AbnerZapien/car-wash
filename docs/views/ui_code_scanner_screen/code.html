@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>UI Code Scanner Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#00BFFF",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#0A2540",
+                        "text-light": "#0A2540",
+                        "text-dark": "#FFFFFF",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#101922"
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .scanner-box {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            border: 2px solid white;
+            box-shadow: 0 0 0 1600px rgba(0, 0, 0, 0.5);
+        }
+        .scanner-box::before,
+        .scanner-box::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: #00BFFF;
+            border-style: solid;
+        }
+        .scanner-box::before {
+            top: -2px;
+            left: -2px;
+            border-width: 4px 0 0 4px;
+        }
+        .scanner-box::after {
+            top: -2px;
+            right: -2px;
+            border-width: 4px 4px 0 0;
+        }
+        .scanner-box .corner-bottom-left::before,
+        .scanner-box .corner-bottom-right::after {
+             content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: #00BFFF;
+            border-style: solid;
+        }
+        .scanner-box .corner-bottom-left::before {
+            bottom: -2px;
+            left: -2px;
+            border-width: 0 0 4px 4px;
+        }
+        .scanner-box .corner-bottom-right::after {
+             bottom: -2px;
+            right: -2px;
+            border-width: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full flex-col items-center group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col w-full">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-gray-700 px-4 sm:px-10 py-3 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-4 text-text-light dark:text-text-dark">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_543)">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M7.24189 26.4066C7.31369 26.4411 7.64204 26.5637 8.52504 26.3738C9.59462 26.1438 11.0343 25.5311 12.7183 24.4963C14.7583 23.2426 17.0256 21.4503 19.238 19.238C21.4503 17.0256 23.2426 14.7583 24.4963 12.7183C25.5311 11.0343 26.1438 9.59463 26.3738 8.52504C26.5637 7.64204 26.4411 7.31369 26.4066 7.24189C26.345 7.21246 26.143 7.14535 25.6664 7.1918C24.9745 7.25925 23.9954 7.5498 22.7699 8.14278C20.3369 9.32007 17.3369 11.4915 14.4142 14.4142C11.4915 17.3369 9.32007 20.3369 8.14278 22.7699C7.5498 23.9954 7.25925 24.9745 7.1918 25.6664C7.14534 26.143 7.21246 26.345 7.24189 26.4066ZM29.9001 10.7285C29.4519 12.0322 28.7617 13.4172 27.9042 14.8126C26.465 17.1544 24.4686 19.6641 22.0664 22.0664C19.6641 24.4686 17.1544 26.465 14.8126 27.9042C13.4172 28.7617 12.0322 29.4519 10.7285 29.9001L21.5754 40.747C21.6001 40.7606 21.8995 40.931 22.8729 40.7217C23.9424 40.4916 25.3821 39.879 27.0661 38.8441C29.1062 37.5904 31.3734 35.7982 33.5858 33.5858C35.7982 31.3734 37.5904 29.1062 38.8441 27.0661C39.879 25.3821 40.4916 23.9425 40.7216 22.8729C40.931 21.8995 40.7606 21.6001 40.747 21.5754L29.9001 10.7285ZM29.2403 4.41187L43.5881 18.7597C44.9757 20.1473 44.9743 22.1235 44.6322 23.7139C44.2714 25.3919 43.4158 27.2666 42.252 29.1604C40.8128 31.5022 38.8165 34.012 36.4142 36.4142C34.012 38.8165 31.5022 40.8128 29.1604 42.252C27.2666 43.4158 25.3919 44.2714 23.7139 44.6322C22.1235 44.9743 20.1473 44.9757 18.7597 43.5881L4.41187 29.2403C3.29027 28.1187 3.08209 26.5973 3.21067 25.2783C3.34099 23.9415 3.8369 22.4852 4.54214 21.0277C5.96129 18.0948 8.43335 14.7382 11.5858 11.5858C14.7382 8.43335 18.0948 5.9613 21.0277 4.54214C22.4852 3.8369 23.9415 3.34099 25.2783 3.21067C26.5973 3.08209 28.1187 3.29028 29.2403 4.41187Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs>
+<clippath id="clip0_6_543"><rect fill="white" height="48" width="48"></rect></clippath>
+</defs>
+</svg>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Hedgestone Carwash</h2>
+</div>
+<div class="flex flex-1 justify-end gap-4">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-gray-200 dark:bg-surface-dark text-text-light dark:text-text-dark gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined">person</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDb3ErJGzxJMSctMkRhoWIaa7Q0KjNsNf141I6cvFhep2k5HNqsizijP-4R02h5KodlBU3ILqSYNeeWFpuLhukXI9D5KikLjVMiLUvgDXtR7INjPKgxvrRQD5yiiOk88qegxaw7LCxCZTB9SsLjbCDfZAmID9HgZoX8I4lPCE4YjaVFGwLMqS5gnKUh4pHcqBbuP3amT1pGGnXnA9fG5xvndPhz9EoKGCDZ7_9oZW9TDm-MkxPICjwqmNo7dI96cbQP1ns49mIHH5k1");'></div>
+</div>
+</header>
+<main class="flex flex-1 justify-center py-5 px-4 w-full">
+<div class="flex flex-col items-center max-w-[960px] flex-1">
+<h1 class="text-text-light dark:text-text-dark tracking-light text-[32px] font-bold leading-tight px-4 text-center pb-3 pt-6">Scan Your Access Code</h1>
+<p class="text-text-light dark:text-text-dark/80 text-base font-normal leading-normal pb-8 pt-1 px-4 text-center">Align the code within the frame to gain entry.</p>
+<div class="relative w-full max-w-sm mx-auto bg-surface-dark dark:bg-black p-2 rounded-xl shadow-2xl">
+<div class="relative w-full overflow-hidden bg-slate-900 aspect-[9/16] rounded-lg flex items-center justify-center">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover" data-alt="Simulated camera view of a car wash interior with water spraying" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDl7YeMK4IGiaunkff73WXN6EIG6zjev0etx9SrqRm_TcCpfHJFuCK5cRM4oXiMAQLiA8_rc5SYGWKhAz2n_y49ilp7CI12TSt0GvCLKy4XMyOg7mgGtMQNyjTADGIdr3-aYgE3rciNS8HqtDMHiUJWvvfzuJGJHxhNPjn-PQv1Ibp-C6X-0forhkV2iF1eud1CLwaA8LTVOlM7i2iZT1KMBXuZYE-pVQquVQ0-i5-KigJUTefNT70TBxyyTRaJvzlwTAFdEYceoLx4"); filter: blur(2px); transform: scale(1.05);'></div>
+<div class="scanner-box">
+<div class="corner-bottom-left"></div>
+<div class="corner-bottom-right"></div>
+</div>
+<button class="absolute bottom-6 right-6 flex min-w-[48px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 w-12 bg-black/50 text-white backdrop-blur-sm">
+<span class="material-symbols-outlined text-2xl">flashlight_on</span>
+</button>
+</div>
+</div>
+<div class="flex px-4 py-6 justify-center">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white gap-2 pl-3 text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="material-symbols-outlined text-xl">upload</span>
+<span class="truncate">Upload QR Code</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+<!-- Success Modal -->
+<div class="absolute inset-0 bg-background-dark/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+<div class="bg-surface-light dark:bg-surface-dark w-full max-w-sm rounded-xl shadow-2xl p-8 flex flex-col items-center text-center">
+<div class="w-20 h-20 bg-green-500/10 dark:bg-green-400/20 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-5xl text-green-500 dark:text-green-400">check_circle</span>
+</div>
+<h2 class="text-2xl font-bold text-text-light dark:text-text-dark mb-2">Access Granted!</h2>
+<p class="text-text-light/80 dark:text-text-dark/70 mb-1">Welcome back, Alex Johnson.</p>
+<p class="text-text-light/80 dark:text-text-dark/70 mb-6">Plan: Ultimate Shine</p>
+<button class="w-full flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-4 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Done</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

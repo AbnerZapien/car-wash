@@ -1,0 +1,51 @@
+package views
+
+import "github.com/edlingao/hexago/web/templates"
+
+type TermsVM struct {
+	Error error
+}
+
+templ Terms(vm TermsVM) {
+	@templates.Index(templates.IndexVM{Title: "Terms of Service - Hedgestone Carwash", Error: vm.Error}) {
+		<div class="bg-base-200 min-h-screen">
+			@PublicNavbar()
+
+			<div class="bg-white">
+				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+					<h1 class="text-4xl font-extrabold text-gray-900">Terms of Service</h1>
+					<p class="mt-4 text-gray-600">Last updated: January 9, 2026</p>
+
+					<div class="mt-10 space-y-8 text-gray-700 leading-relaxed">
+						<section>
+							<h2 class="text-2xl font-bold text-gray-900">1. Acceptance</h2>
+							<p class="mt-3">By using the Services, you agree to these Terms.</p>
+						</section>
+
+						<section>
+							<h2 class="text-2xl font-bold text-gray-900">2. Accounts</h2>
+							<p class="mt-3">You are responsible for maintaining the confidentiality of your login credentials and for activity under your account.</p>
+						</section>
+
+						<section>
+							<h2 class="text-2xl font-bold text-gray-900">3. Acceptable Use</h2>
+							<p class="mt-3">Do not misuse the Services, attempt unauthorized access, or disrupt availability.</p>
+						</section>
+
+						<section>
+							<h2 class="text-2xl font-bold text-gray-900">4. Changes</h2>
+							<p class="mt-3">We may update these Terms from time to time. Continued use means you accept the updated Terms.</p>
+						</section>
+
+						<section>
+							<h2 class="text-2xl font-bold text-gray-900">5. Contact</h2>
+							<p class="mt-3">Questions about these Terms can be sent via our <a class="text-blue-600 hover:underline" href="/contact">Contact</a> page.</p>
+						</section>
+					</div>
+				</div>
+			</div>
+
+			@PublicFooter()
+		</div>
+	}
+}

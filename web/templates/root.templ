@@ -1,0 +1,41 @@
+package templates
+
+import "os"
+
+type IndexVM struct {
+	Title string
+	Error error
+	// BodyClass is optional. If set, it will be applied to the <body> element.
+	BodyClass string
+}
+
+templ Index(vm IndexVM) {
+	<html>
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			if os.Getenv("ENV") == "development" {
+				<link rel="stylesheet" href="http://localhost:8080/css/style.css"/>
+			} else {
+				<link rel="stylesheet" href="/static/dist/hexagonal.css"/>
+			}
+			<link rel="icon" href="/static/favicon.svg" type="image/svg"/>
+			<title>{ vm.Title }</title>
+		</head>
+		<body class={ vm.BodyClass }>
+			if vm.Error != nil {
+				<div role="alert" class="alert alert-error">
+					<h1>Error: { vm.Error.Error() }</h1>
+				</div>
+			}
+			{ children... }
+			<!-- Scripts -->
+			if os.Getenv("ENV") == "development" {
+				<script defer type="module" src="http://localhost:8080/src/main.js"></script>
+				<script defer type="module" src="http://localhost:8080/@vite/client"></script>
+			} else {
+				<script defer type="module" src="/static/dist/app.js"></script>
+			}
+		</body>
+	</html>
+}

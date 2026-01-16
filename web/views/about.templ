@@ -1,0 +1,36 @@
+package views
+
+import "github.com/edlingao/hexago/web/templates"
+
+type AboutVM struct {
+	Error error
+}
+
+templ About(vm AboutVM) {
+	@templates.Index(templates.IndexVM{Title: "About Us - Hedgestone Carwash", Error: vm.Error}) {
+		<div class="bg-base-200 min-h-screen">
+			@PublicNavbar()
+
+			<div class="bg-white">
+				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+					<h1 class="text-4xl font-extrabold text-gray-900">About Us</h1>
+					<p class="mt-4 text-gray-600">We build a fast, secure, and modern carwash experience for customers and operators.</p>
+
+					<div class="mt-10 space-y-6 text-gray-700 leading-relaxed">
+						<p>
+							Hedgestone Carwash focuses on making membership-based washes and access control seamless—simple sign-in, QR access, and reliable verification.
+						</p>
+						<p>
+							Our goal is to reduce friction for customers and reduce operational overhead for carwash teams, while maintaining strong security and a clean UX.
+						</p>
+						<p>
+							If you have questions, reach out via our <a class="text-blue-600 hover:underline" href="/contact">Contact</a> page.
+						</p>
+					</div>
+				</div>
+			</div>
+
+			@PublicFooter()
+		</div>
+	}
+}

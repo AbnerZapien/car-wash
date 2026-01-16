@@ -1,0 +1,122 @@
+package users
+
+import "github.com/edlingao/hexago/web/templates"
+
+type QRCodeVM struct {
+	Error error
+}
+
+templ QRCode(vm QRCodeVM) {
+	@templates.Index(templates.IndexVM{
+		Title: "Access Code - Hedgestone Carwash",
+		Error: vm.Error,
+	}) {
+		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+		<div
+			class="relative flex min-h-screen w-full flex-col bg-slate-100 overflow-x-hidden"
+			x-data="qrCodeStore"
+			@beforeunload.window="destroy()"
+		>
+			<!-- Header -->
+			<header class="w-full">
+				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div class="flex items-center justify-between whitespace-nowrap border-b border-slate-200 py-4">
+						<a href="/dashboard" class="flex items-center gap-3 text-slate-800">
+							<span class="material-symbols-outlined text-3xl text-blue-600">local_car_wash</span>
+							<h2 class="text-xl font-bold tracking-tight">Hedgestone</h2>
+						</a>
+						<div class="flex items-center gap-6">
+							<a class="text-sm font-medium hover:text-blue-600 transition-colors" href="/dashboard">Dashboard</a>
+							<div
+								class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-blue-600"
+								:style="user?.avatarUrl ? `background-image: url('${user.avatarUrl}')` : ''"
+							></div>
+						</div>
+					</div>
+				</div>
+			</header>
+			<!-- Main Content -->
+			<main class="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+				<div class="max-w-md w-full space-y-8 text-center">
+					<!-- Page Heading -->
+					<div class="flex flex-col gap-2">
+						<h1 class="text-4xl font-black tracking-tight text-slate-800">Your Car Wash Access Code</h1>
+						<p class="text-lg text-slate-500">Present this code to the scanner at the entrance.</p>
+					</div>
+					<!-- User Info Card -->
+					<div class="bg-white shadow-sm rounded-lg p-6">
+						<div class="flex flex-col items-center justify-center gap-2">
+							<p class="text-xl font-bold text-slate-800" x-text="userName">Loading...</p>
+							<p class="text-base text-slate-500" x-text="planName">Loading...</p>
+						</div>
+					</div>
+					<!-- QR Code Display -->
+					<div class="bg-white p-6 rounded-xl shadow-lg inline-block">
+						<img
+							alt="QR Code for car wash access"
+							class="rounded-lg w-48 h-48"
+							:src="qrCodeUrl"
+						/>
+					</div>
+					<!-- Timer -->
+					<div class="flex flex-col items-center gap-4">
+						<p class="text-sm text-slate-500">Code expires in:</p>
+						<div class="flex gap-4">
+							<!-- Minutes -->
+							<div class="flex w-20 flex-col items-stretch gap-2">
+								<div class="flex h-16 grow items-center justify-center rounded-lg bg-slate-200">
+									<p
+										class="text-4xl font-bold text-slate-800"
+										x-text="formattedMinutes"
+										:class="timer.expired ? 'text-red-600' : ''"
+									>05</p>
+								</div>
+								<div class="flex items-center justify-center">
+									<p class="text-sm font-normal text-slate-500">Minutes</p>
+								</div>
+							</div>
+							<!-- Colon -->
+							<div class="flex items-center text-4xl font-bold pb-8 text-slate-400">:</div>
+							<!-- Seconds -->
+							<div class="flex w-20 flex-col items-stretch gap-2">
+								<div class="flex h-16 grow items-center justify-center rounded-lg bg-slate-200">
+									<p
+										class="text-4xl font-bold text-slate-800"
+										x-text="formattedSeconds"
+										:class="timer.expired ? 'text-red-600' : ''"
+									>00</p>
+								</div>
+								<div class="flex items-center justify-center">
+									<p class="text-sm font-normal text-slate-500">Seconds</p>
+								</div>
+							</div>
+						</div>
+						<!-- Expired Message -->
+						<p x-show="timer.expired" x-cloak class="text-red-600 font-medium mt-2">
+							Code expired! Click refresh to generate a new one.
+						</p>
+					</div>
+					<!-- Refresh Button -->
+					<div class="flex justify-center pt-4">
+						<button
+							@click="refreshCode()"
+							class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-slate-800 text-white gap-2 text-base font-bold leading-normal tracking-wide hover:bg-slate-700 transition-colors"
+						>
+							<span class="material-symbols-outlined">refresh</span>
+							<span class="truncate">Refresh Code</span>
+						</button>
+					</div>
+					<!-- Back to Dashboard -->
+					<div class="pt-4">
+						<a href="/dashboard" class="text-blue-600 hover:underline text-sm font-medium">
+							← Back to Dashboard
+						</a>
+					</div>
+				</div>
+			</main>
+		</div>
+		<style>
+			[x-cloak] { display: none !important; }
+		</style>
+	}
+}

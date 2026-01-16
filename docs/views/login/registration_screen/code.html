@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login/Registration Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css?family=Inter:400,500,600,700,900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#0d7ff2",
+            "background-light": "#f5f7f8",
+            "background-dark": "#101922",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body class="font-display">
+<div class="relative flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="flex flex-1 justify-center">
+<div class="layout-content-container flex flex-col w-full flex-1">
+<div class="grid grid-cols-1 md:grid-cols-2 min-h-screen">
+<!-- Left Panel -->
+<div class="relative hidden md:flex flex-col items-center justify-center p-10 bg-slate-100 dark:bg-background-dark">
+<div class="absolute inset-0 bg-center bg-no-repeat bg-cover" data-alt="A clean, modern car with water droplets on its surface, reflecting a blue sky." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCXQxwUUXVkQieqe1hOp1Zn6VGqSmlGTeTiAZR0VdfgWEaPuWSzDiRsgekgww0YiUXIOqWxCwp0wnXmolbt0NhFvZsnsoH9wklb868slLuybMKLmRrZwbog8fgl8r2op-7gLG_5bxNzWPZtP62ADFIJdhuafdl3BvhKsSWXDNU2cT-R_uvOg3d0BCnaosX0b_s5e3OcNidRQ6H3nnTs0zSwWicFrtFGwuXcq6CSsddVZUvhKqQW7ODO5R2lXlPutjDDr0FWcuK-_WYG');">
+<div class="absolute inset-0 bg-primary/70 dark:bg-background-dark/70"></div>
+</div>
+<div class="relative z-10 flex flex-col gap-8 max-w-md text-white text-center">
+<div class="flex items-center justify-center gap-3">
+<span class="material-symbols-outlined text-4xl">local_car_wash</span>
+<p class="text-2xl font-bold">Hedgestone - Carwash</p>
+</div>
+<div class="flex flex-col gap-2">
+<h1 class="text-4xl font-black leading-tight tracking-tight">Your Car, Perfectly Clean.</h1>
+<h2 class="text-lg font-normal leading-normal opacity-90">Unlimited Washes, Unbeatable Shine.</h2>
+</div>
+</div>
+</div>
+<!-- Right Panel -->
+<div class="flex flex-col items-center justify-center w-full bg-background-light dark:bg-background-dark p-6 sm:p-8">
+<div class="flex flex-col w-full max-w-sm">
+<div class="flex items-center gap-3 mb-8 md:hidden">
+<span class="material-symbols-outlined text-3xl text-primary">local_car_wash</span>
+<p class="text-xl font-bold text-slate-800 dark:text-slate-200">Hedgestone - Carwash</p>
+</div>
+<h1 class="text-[#0d141c] dark:text-slate-100 tracking-light text-[32px] font-bold leading-tight pb-3 pt-6 text-left">Welcome Back</h1>
+<p class="text-slate-600 dark:text-slate-400 pb-6">Enter your credentials to access your account.</p>
+<div class="flex px-0 py-3">
+<div class="flex h-10 flex-1 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-background-light has-[:checked]:dark:bg-slate-700 has-[:checked]:shadow-sm has-[:checked]:text-[#0d141c] has-[:checked]:dark:text-slate-100 text-slate-500 dark:text-slate-400 text-sm font-medium leading-normal">
+<span class="truncate">Login</span>
+<input checked="" class="invisible w-0" name="auth-toggle" type="radio" value="Login"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-background-light has-[:checked]:dark:bg-slate-700 has-[:checked]:shadow-sm has-[:checked]:text-[#0d141c] has-[:checked]:dark:text-slate-100 text-slate-500 dark:text-slate-400 text-sm font-medium leading-normal">
+<span class="truncate">Register</span>
+<input class="invisible w-0" name="auth-toggle" type="radio" value="Register"/>
+</label>
+</div>
+</div>
+<div class="flex w-full flex-col gap-4 py-3">
+<label class="flex flex-col flex-1">
+<p class="text-[#0d141c] dark:text-slate-200 text-base font-medium leading-normal pb-2">Email Address</p>
+<div class="flex w-full flex-1 items-stretch rounded-lg">
+<div class="text-slate-500 dark:text-slate-400 flex border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-slate-800 items-center justify-center pl-[15px] rounded-l-lg border-r-0">
+<span class="material-symbols-outlined">mail</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-slate-800 focus:border-primary h-14 placeholder:text-slate-500 dark:placeholder:text-slate-500 p-[15px] rounded-l-none text-base font-normal leading-normal" placeholder="Enter your email address" type="email" value=""/>
+</div>
+</label>
+<label class="flex flex-col flex-1">
+<p class="text-[#0d141c] dark:text-slate-200 text-base font-medium leading-normal pb-2">Password</p>
+<div class="flex w-full flex-1 items-stretch rounded-lg">
+<div class="text-slate-500 dark:text-slate-400 flex border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-slate-800 items-center justify-center pl-[15px] rounded-l-lg border-r-0">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-slate-800 focus:border-primary h-14 placeholder:text-slate-500 dark:placeholder:text-slate-500 p-[15px] text-base font-normal leading-normal" placeholder="Enter your password" type="password" value=""/>
+<div class="text-slate-500 dark:text-slate-400 flex border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-slate-800 items-center justify-center pr-[15px] rounded-r-lg border-l-0 cursor-pointer">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+</div>
+</label>
+</div>
+<div class="flex items-center justify-end px-1 py-2">
+<a class="text-sm font-medium text-primary hover:underline" href="#">Forgot Password?</a>
+</div>
+<div class="flex flex-col gap-3 pt-4">
+<button class="flex min-w-[84px] max-w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-slate-50 text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">Login</button>
+<button class="flex min-w-[84px] max-w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-slate-200 dark:bg-slate-800 text-[#0d141c] dark:text-slate-100 text-base font-bold leading-normal tracking-[0.015em] hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+<svg class="w-5 h-5 mr-3" height="48px" viewbox="0 0 48 48" width="48px"><path d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" fill="#FFC107"></path><path d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" fill="#FF3D00"></path><path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" fill="#4CAF50"></path><path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l6.19,5.238C42.021,35.596,44,30.138,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2"></path></svg>
+<span>Continue with Google</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

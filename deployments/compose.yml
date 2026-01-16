@@ -1,0 +1,26 @@
+services:
+  server:
+    image: edlingaona/carwash:latest
+    build:
+      context: ../
+      dockerfile: ./deployments/dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../db/main.db:/app/db/main.db
+      - ../public:/app/public
+    env_file:
+      - ../.env
+    command: ["/bin/bash", "-c", "./main"]
+    network_mode: host
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ../config/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - server
+    network_mode: host

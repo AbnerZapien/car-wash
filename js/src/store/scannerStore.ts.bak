@@ -1,0 +1,85 @@
+import { SEED_USERS, SEED_SUBSCRIPTIONS } from '../adapters/mockData';
+
+interface ScannedUser {
+  name: string;
+  plan: string;
+}
+
+export function scannerStore() {
+  return {
+    scanning: false,
+    flashOn: false,
+    showSuccessModal: false,
+    scannedUser: null as ScannedUser | null,
+    error: null as string | null,
+
+    init() {
+      this.startScan();
+    },
+
+    startScan() {
+      this.scanning = true;
+      this.error = null;
+    },
+
+    stopScan() {
+      this.scanning = false;
+    },
+
+    toggleFlash() {
+      this.flashOn = !this.flashOn;
+    },
+
+    handleScanResult(code: string) {
+      const parts = code.split('-');
+      if (parts.length >= 2 && parts[0] === 'CARWASH') {
+        const userId = parts[1];
+        const user = SEED_USERS.find((u) => u.id === userId);
+        const sub = SEED_SUBSCRIPTIONS.find((s) => s.userId === userId);
+
+        if (user && sub) {
+          this.scannedUser = {
+            name: `${user.firstName} ${user.lastName}`,
+            plan: sub.plan.name,
+          };
+          this.showSuccessModal = true;
+          this.scanning = false;
+        } else {
+          this.error = 'Invalid or expired access code';
+        }
+      } else {
+        this.error = 'Invalid QR code format';
+      }
+    },
+
+    closeModal() {
+      this.showSuccessModal = false;
+      this.scannedUser = null;
+      this.startScan();
+    },
+
+    uploadQRCode() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = () => {
+        this.simulateScan();
+      };
+      input.click();
+    },
+
+    simulateScan() {
+      this.scanning = true;
+      setTimeout(() => {
+        const user = SEED_USERS[0];
+        const sub = SEED_SUBSCRIPTIONS[0];
+        this.scannedUser = {
+          name: `${user.firstName} ${user.lastName}`,
+          plan: sub.plan.name,
+        };
+        this.showSuccessModal = true;
+        this.scanning = false;
+      }, 2000);
+    },
+  };
+}
