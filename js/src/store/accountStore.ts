@@ -1,20 +1,40 @@
 import { storage } from '../adapters/localStorage';
 import { STORAGE_KEYS } from '../ports/storage';
-import { SEED_SUBSCRIPTIONS } from '../adapters/mockData';
-import type { User } from '../core/models/user';
-import type { Subscription } from '../core/models/subscription';
+
+type MeResponse = {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+};
+
+type SubscriptionResponse = {
+  active: boolean;
+  subscription: null | {
+    planId: string;
+    planName: string;
+    priceCents: number;
+    featuresJson: string;
+    status: string;
+    nextBillingDate: string;
+  };
+};
 
 interface AuthStorageData {
   isAuthenticated: boolean;
-  currentUser: User | null;
+  currentUser: any | null;
   token: string | null;
 }
 
 export function accountStore() {
   return {
-    user: null as User | null,
-    subscription: null as Subscription | null,
+    // API-backed data
+    me: null as MeResponse | null,
+    subscription: null as SubscriptionResponse['subscription'] | null,
 
+    // Form state
     firstName: '',
     lastName: '',
     email: '',
@@ -22,16 +42,40 @@ export function accountStore() {
 
     error: null as string | null,
     saved: false,
+    loading: false,
 
-    init() {
-      const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
-      if (auth?.currentUser) this.user = auth.currentUser;
+    // DEV-only: match your backend demo header
+    demoUserId: 4,
 
-      const uid = this.user?.id || '1';
-      this.subscription =
-        SEED_SUBSCRIPTIONS.find((s) => s.userId === uid) || SEED_SUBSCRIPTIONS[0];
+    async init() {
+      this.loading = true;
+      this.error = null;
+      this.saved = false;
 
-      this.resetForm();
+      try {
+        // Load profile + subscription from API
+        const [meRes, subRes] = await Promise.all([
+          fetch('/api/v1/me', { headers: { 'X-Demo-UserId': String(this.demoUserId) } }),
+          fetch('/api/v1/me/subscription', { headers: { 'X-Demo-UserId': String(this.demoUserId) } }),
+        ]);
+
+        if (!meRes.ok) throw new Error('Failed to load profile');
+        const me = (await meRes.json()) as MeResponse;
+        this.me = me;
+
+        const sub = (await subRes.json()) as SubscriptionResponse;
+        this.subscription = sub.subscription;
+
+        // Fill form
+        this.firstName = me.firstName || '';
+        this.lastName = me.lastName || '';
+        this.email = me.email || '';
+        this.avatarPreview = '';
+      } catch (e: any) {
+        this.error = e?.message ?? 'Failed to load account';
+      } finally {
+        this.loading = false;
+      }
     },
 
     resetForm() {
@@ -39,9 +83,9 @@ export function accountStore() {
       this.error = null;
       this.avatarPreview = '';
 
-      this.firstName = this.user?.firstName || '';
-      this.lastName = this.user?.lastName || '';
-      this.email = this.user?.email || '';
+      this.firstName = this.me?.firstName || '';
+      this.lastName = this.me?.lastName || '';
+      this.email = this.me?.email || '';
     },
 
     onAvatarChange(e: Event) {
@@ -59,7 +103,7 @@ export function accountStore() {
       reader.readAsDataURL(file);
     },
 
-    saveProfile() {
+    async saveProfile() {
       this.saved = false;
       this.error = null;
 
@@ -72,39 +116,45 @@ export function accountStore() {
         return;
       }
 
-      if (!this.user) {
-        // If user isn't set, create a minimal one for dev flow.
-        this.user = {
-          id: '1',
-          username: 'user',
-          email: this.email,
-          firstName: this.firstName,
-          lastName: this.lastName,
-          avatarUrl: this.avatarPreview || '',
-          createdAt: new Date(),
-          role: 'user',
-        };
-      } else {
-        this.user.firstName = this.firstName;
-        this.user.lastName = this.lastName;
-        this.user.email = this.email;
-        if (this.avatarPreview) this.user.avatarUrl = this.avatarPreview;
+      try {
+        const res = await fetch('/api/v1/me', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Demo-UserId': String(this.demoUserId),
+          },
+          body: JSON.stringify({
+            email: this.email,
+            firstName: this.firstName,
+            lastName: this.lastName,
+            avatarUrl: this.avatarPreview || undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || 'Save failed');
+        }
+
+        const me = (await res.json()) as MeResponse;
+        this.me = me;
+        this.avatarPreview = '';
+        this.saved = true;
+
+        // Keep local auth storage updated for existing UI pieces
+        const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
+        if (auth?.currentUser) {
+          auth.currentUser.email = me.email;
+          auth.currentUser.firstName = me.firstName;
+          auth.currentUser.lastName = me.lastName;
+          auth.currentUser.avatarUrl = me.avatarUrl;
+          storage.set(STORAGE_KEYS.AUTH, auth);
+        }
+
+        setTimeout(() => (this.saved = false), 2000);
+      } catch (e: any) {
+        this.error = e?.message ?? 'Save failed';
       }
-
-      // Persist back to AUTH storage (same pattern other stores read)
-      const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH) || {
-        isAuthenticated: true,
-        currentUser: null,
-        token: 'dev-token',
-      };
-
-      auth.currentUser = this.user;
-      auth.isAuthenticated = true;
-
-      storage.set(STORAGE_KEYS.AUTH, auth);
-
-      this.saved = true;
-      setTimeout(() => (this.saved = false), 2000);
     },
   };
 }
