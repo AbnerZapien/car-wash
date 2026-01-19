@@ -21,3 +21,6 @@ db/main.db
 # Go
 *.exe
 *.out
+
+*.bak_*
+Dockerfile.bak_*
