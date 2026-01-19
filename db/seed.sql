@@ -25,3 +25,25 @@ INSERT OR REPLACE INTO subscriptions (id, user_id, plan_id, status, start_date, 
   ('sub-demo-4', 4, 'premium', 'active', '2025-09-01', '2026-02-01', 9),
   ('sub-demo-5', 5, 'basic',   'active', '2025-11-10', '2026-01-25', 4),
   ('sub-demo-6', 6, 'platinum','active', '2025-06-15', '2026-02-10', 31);
+
+-- Profile fields (idempotent updates)
+UPDATE users SET
+  email='mia.torres@hedgestonecarwash.com',
+  first_name='Mia',
+  last_name='Torres',
+  avatar_url='https://i.pravatar.cc/150?img=47'
+WHERE id=4;
+
+UPDATE users SET
+  email='carlos.mendoza@hedgestonecarwash.com',
+  first_name='Carlos',
+  last_name='Mendoza',
+  avatar_url='https://i.pravatar.cc/150?img=12'
+WHERE id=5;
+
+UPDATE users SET
+  email='priya.patel@hedgestonecarwash.com',
+  first_name='Priya',
+  last_name='Patel',
+  avatar_url='https://i.pravatar.cc/150?img=5'
+WHERE id=6;
