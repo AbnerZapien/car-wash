@@ -12,7 +12,7 @@ COPY web/ /app/web/
 RUN pnpm build
 
 # ---- Go build ----
-FROM golang:1.23.2-alpine AS gobuild
+FROM golang:1.24.0-alpine AS gobuild
 WORKDIR /app
 RUN apk add --no-cache build-base
 
@@ -40,4 +40,4 @@ COPY --from=gobuild /app/static /app/static
 COPY --from=gobuild /app/db /app/db
 
 # Render provides PORT (default 10000) :contentReference[oaicite:1]{index=1}
-CMD ["sh","-c","mkdir -p /app/db && if [ ! -f /app/db/main.db ]; then sqlite3 /app/db/main.db < /app/db/schema.sql; sqlite3 /app/db/main.db < /app/db/seed.sql; fi; GO_PORT=${PORT:-10000} ENV=production ./server"]
+CMD ["sh","-c","mkdir -p /app/db && if [ ! -f /app/db/main.db ]; then sqlite3 /app/db/main.db < /app/db/schema.sql; sqlite3 /app/db/main.db < /app/db/seed.sql; fi; sqlite3 /app/db/main.db "ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''" 2>/dev/null || true; sqlite3 /app/db/main.db "ALTER TABLE users ADD COLUMN first_name TEXT NOT NULL DEFAULT ''" 2>/dev/null || true; sqlite3 /app/db/main.db "ALTER TABLE users ADD COLUMN last_name TEXT NOT NULL DEFAULT ''" 2>/dev/null || true; sqlite3 /app/db/main.db "ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT ''" 2>/dev/null || true; GO_PORT=${PORT:-10000} ENV=production ./server"]
