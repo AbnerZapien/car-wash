@@ -4,20 +4,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
-	"os"
-	"path/filepath"
 )
-
-func connectSQLite() (*sqlx.DB, error) {
-	p := os.Getenv("DB_PATH")
-	if p == "" {
-		p = "./db/main.db"
-	}
-	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
-		return nil, err
-	}
-	return sqlx.Connect("sqlite3", p)
-}
 
 type UsersStore[Item any] struct {
 	db *sqlx.DB
