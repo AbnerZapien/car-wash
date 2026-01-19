@@ -9,7 +9,7 @@ type HistoryVM struct {
 templ History(vm HistoryVM) {
 	@templates.Index(templates.IndexVM{Title: "History - Hedgestone Carwash", Error: vm.Error}) {
 		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-		<div class="relative flex min-h-screen w-full flex-col bg-slate-100 overflow-x-hidden" x-data="historyStore">
+		<div class="relative flex min-h-screen w-full flex-col bg-slate-100 overflow-x-hidden" x-data="historyStore()" x-init="init()">
 			<div class="flex h-full grow flex-col">
 				<div class="flex flex-1 justify-center py-5">
 					<div class="flex flex-col w-full max-w-5xl flex-1 px-4 md:px-10">
