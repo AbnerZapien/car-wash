@@ -1,6 +1,5 @@
 import { storage } from '../adapters/localStorage';
 import { STORAGE_KEYS } from '../ports/storage';
-import { SEED_USERS } from '../adapters/mockData';
 import type { User, AuthTab } from '../core/models/user';
 
 interface AuthStorageData {
@@ -9,10 +8,45 @@ interface AuthStorageData {
   token: string | null;
 }
 
+type ApiEnvelope = any;
+
+function apiUrl(path: string) {
+  // If you ever open pages from Vite (8080), force API calls to Go (3000).
+  if (window.location.port === '8080') {
+    return `${window.location.protocol}//${window.location.hostname}:3000${path}`;
+  }
+  return path;
+}
+
+function formBody(fields: Record<string, string>) {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(fields)) p.set(k, v);
+  return p.toString();
+}
+
+function unwrapApi(raw: ApiEnvelope) {
+  const status = raw?.Status ?? raw?.status ?? 0;
+  const message = raw?.Message ?? raw?.message ?? '';
+  const data = raw?.Data ?? raw?.data ?? null;
+  return { status, message, data };
+}
+
+async function readJsonOrThrow(res: Response) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    // HTML usually starts with "<"
+    const preview = text.slice(0, 120).replace(/\s+/g, ' ');
+    throw new Error(`Non-JSON response from API (status ${res.status}). Preview: ${preview}`);
+  }
+}
+
 export function authStore() {
   return {
     isAuthenticated: false,
     currentUser: null as User | null,
+    token: null as string | null,
     loading: false,
     error: null as string | null,
     activeTab: 'login' as AuthTab,
@@ -24,22 +58,12 @@ export function authStore() {
     lastName: '',
     showPassword: false,
 
-    get displayName(): string {
-      if (!this.currentUser) return '';
-      return `${this.currentUser.firstName} ${this.currentUser.lastName}`;
-    },
-
-    get initials(): string {
-      if (!this.currentUser) return '';
-      return `${this.currentUser.firstName[0]}${this.currentUser.lastName[0]}`.toUpperCase();
-    },
-
     init() {
-      console.log('authStore init called');
       const saved = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
       if (saved) {
         this.isAuthenticated = saved.isAuthenticated;
         this.currentUser = saved.currentUser;
+        this.token = saved.token;
       }
     },
 
@@ -47,7 +71,7 @@ export function authStore() {
       storage.set<AuthStorageData>(STORAGE_KEYS.AUTH, {
         isAuthenticated: this.isAuthenticated,
         currentUser: this.currentUser,
-        token: null,
+        token: this.token,
       });
     },
 
@@ -66,32 +90,54 @@ export function authStore() {
     },
 
     async login() {
-      console.log('Login called with:', this.email, this.password);
       this.loading = true;
       this.error = null;
 
-      await new Promise((r) => setTimeout(r, 500));
+      try {
+        const res = await fetch(apiUrl('/api/v1/users/signin'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          credentials: 'include',
+          body: formBody({
+            username: this.email.trim(), // backend maps email -> username
+            password: this.password,
+          }),
+        });
 
-      const user = SEED_USERS.find(
-        (u) => u.email === this.email && u.password === this.password
-      );
+        const raw = await readJsonOrThrow(res);
+        const { status, message, data } = unwrapApi(raw);
 
-      console.log('User found:', user);
+        if (!res.ok || status !== 200 || !data) {
+          throw new Error(message || 'Login failed');
+        }
 
-      if (user) {
-        const { password: _, ...userData } = user;
-        this.currentUser = userData;
+        const token = data.token ?? data.Token;
+        const u = data.user ?? data.User;
+        if (!token || !u) throw new Error('Malformed signin response');
+
+        this.token = token;
+
+        const userModel: User = {
+          id: String(u.id ?? ''),
+          username: u.username ?? this.email.split('@')[0],
+          email: this.email.trim(),
+          firstName: u.firstName ?? '',
+          lastName: u.lastName ?? '',
+          avatarUrl: u.avatarUrl ?? '',
+          createdAt: new Date(),
+          role: u.username === 'admin' ? 'admin' : 'user',
+        };
+
+        this.currentUser = userModel;
         this.isAuthenticated = true;
         this.persist();
-        const redirectUrl = userData.role === 'admin' ? '/admin/portal' : '/dashboard';
-        console.log('Redirecting to', redirectUrl);
-        window.location.href = redirectUrl;
-      } else {
-        this.error = 'Invalid email or password';
-        console.log('Login failed - invalid credentials');
-      }
 
-      this.loading = false;
+        window.location.href = userModel.role === 'admin' ? '/admin/portal' : '/dashboard';
+      } catch (e: any) {
+        this.error = e?.message ?? 'Invalid email or password';
+      } finally {
+        this.loading = false;
+      }
     },
 
     async register() {
@@ -103,43 +149,67 @@ export function authStore() {
         this.loading = false;
         return;
       }
-
       if (this.password.length < 6) {
         this.error = 'Password must be at least 6 characters';
         this.loading = false;
         return;
       }
 
-      const exists = SEED_USERS.find((u) => u.email === this.email);
-      if (exists) {
-        this.error = 'Email already registered';
+      try {
+        const res = await fetch(apiUrl('/api/v1/users/signup'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          credentials: 'include',
+          body: formBody({
+            username: this.email.trim(),
+            password: this.password,
+            email: this.email.trim(),
+            firstName: this.firstName.trim(),
+            lastName: this.lastName.trim(),
+            avatarUrl: '',
+          }),
+        });
+
+        const raw = await readJsonOrThrow(res);
+        const { status, message, data } = unwrapApi(raw);
+
+        if (!res.ok || status !== 200 || !data) {
+          throw new Error(message || 'Signup failed');
+        }
+
+        const token = data.token ?? data.Token;
+        const u = data.user ?? data.User;
+        if (!token || !u) throw new Error('Malformed signup response');
+
+        this.token = token;
+
+        const userModel: User = {
+          id: String(u.id ?? ''),
+          username: u.username ?? this.email.split('@')[0],
+          email: this.email.trim(),
+          firstName: this.firstName.trim(),
+          lastName: this.lastName.trim(),
+          avatarUrl: '',
+          createdAt: new Date(),
+          role: 'user',
+        };
+
+        this.currentUser = userModel;
+        this.isAuthenticated = true;
+        this.persist();
+
+        window.location.href = '/dashboard';
+      } catch (e: any) {
+        this.error = e?.message ?? 'Signup failed';
+      } finally {
         this.loading = false;
-        return;
       }
-
-      await new Promise((r) => setTimeout(r, 500));
-
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        username: this.email.split('@')[0],
-        email: this.email,
-        firstName: this.firstName,
-        lastName: this.lastName,
-        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.email}`,
-        createdAt: new Date(),
-        role: 'user',
-      };
-
-      this.currentUser = newUser;
-      this.isAuthenticated = true;
-      this.persist();
-      window.location.href = '/dashboard';
-      this.loading = false;
     },
 
     logout() {
       this.isAuthenticated = false;
       this.currentUser = null;
+      this.token = null;
       storage.remove(STORAGE_KEYS.AUTH);
       storage.remove(STORAGE_KEYS.USER);
       window.location.href = '/login';
