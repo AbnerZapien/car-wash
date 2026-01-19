@@ -127,3 +127,14 @@ func (c *Configurator) Start() {
 	port := os.Getenv("GO_PORT")
 	c.Echo.Logger.Fatal(c.Echo.Start(":" + port))
 }
+
+func (c *Configurator) AddScanAPI() *Configurator {
+	db, err := usersAdapter.ConnectSQLite()
+	if err != nil {
+		panic(err)
+	}
+
+	scanAPI := usersAdapter.NewScanAPIService(c.v1).WithDB(db)
+	scanAPI.RegisterRoutes()
+	return c
+}

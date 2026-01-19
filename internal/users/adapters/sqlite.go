@@ -8,7 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func connectSQLite() (*sqlx.DB, error) {
+func ConnectSQLite() (*sqlx.DB, error) {
 	p := os.Getenv("DB_PATH")
 	if p == "" {
 		p = "./db/main.db"
