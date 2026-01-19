@@ -138,3 +138,13 @@ func (c *Configurator) AddScanAPI() *Configurator {
 	scanAPI.RegisterRoutes()
 	return c
 }
+
+func (c *Configurator) AddMeAPI() *Configurator {
+	db, err := usersAdapter.ConnectSQLite()
+	if err != nil {
+		panic(err)
+	}
+	meAPI := usersAdapter.NewMeAPIService(c.v1).WithDB(db)
+	meAPI.RegisterRoutes()
+	return c
+}
