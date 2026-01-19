@@ -2,7 +2,9 @@ package adapters
 
 import (
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	auth "github.com/edlingao/go-auth/auth/core"
 	"github.com/edlingao/hexago/internal/users/core"
@@ -90,6 +92,20 @@ func (uas *UsersAPIService) SignIn(c echo.Context) error {
 		})
 	}
 
+	// Set session token cookie (HttpOnly). Browser will send it automatically on same-origin requests.
+	cookie := new(http.Cookie)
+	cookie.Name = "session_token"
+	cookie.Value = token.Token
+	cookie.Path = "/"
+	cookie.HttpOnly = true
+	cookie.SameSite = http.SameSiteLaxMode
+	cookie.Expires = time.Now().Add(7 * 24 * time.Hour)
+	cookie.MaxAge = 60 * 60 * 24 * 7
+	if os.Getenv("ENV") == "production" {
+		cookie.Secure = true
+	}
+	c.SetCookie(cookie)
+
 	return c.JSON(200, ports.Response[SignInResponse]{
 		Status:  200,
 		Message: "User signed in",
@@ -129,6 +145,20 @@ func (uas *UsersAPIService) SignUp(c echo.Context) error {
 			Message: err.Error(),
 		})
 	}
+
+	// Set session token cookie (HttpOnly). Browser will send it automatically on same-origin requests.
+	cookie := new(http.Cookie)
+	cookie.Name = "session_token"
+	cookie.Value = token.Token
+	cookie.Path = "/"
+	cookie.HttpOnly = true
+	cookie.SameSite = http.SameSiteLaxMode
+	cookie.Expires = time.Now().Add(7 * 24 * time.Hour)
+	cookie.MaxAge = 60 * 60 * 24 * 7
+	if os.Getenv("ENV") == "production" {
+		cookie.Secure = true
+	}
+	c.SetCookie(cookie)
 
 	return c.JSON(200, ports.Response[SignInResponse]{
 		Status:  200,
