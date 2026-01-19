@@ -1,9 +1,11 @@
 package adapters
 
 import (
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -103,27 +105,69 @@ func (uas *UsersAPIService) GetAllUsers(c echo.Context) error {
 }
 
 func (uas *UsersAPIService) SignIn(c echo.Context) error {
-	username := c.FormValue("username")
+	identifier := strings.TrimSpace(c.FormValue("username"))
 	password := c.FormValue("password")
 
-	if username == "" || password == "" {
+	if identifier == "" || password == "" {
 		return c.JSON(400, ports.Response[any]{
 			Status:  400,
 			Message: "Username and password are required",
 		})
 	}
 
-	user, err := uas.usersService.SignIn(resolveUsername(username), password)
+	uname := resolveUsername(identifier)
+
+	// First try the existing user service
+	user, err := uas.usersService.SignIn(uname, password)
+
+	// Fallback for demo seeds: support plaintext passwords (and bcrypt if present)
+	if err != nil {
+		db, derr := ConnectSQLite()
+		if derr == nil {
+			defer db.Close()
+
+			var row struct {
+				ID        int    `db:"id"`
+				Username  string `db:"username"`
+				Password  string `db:"password"`
+				Email     string `db:"email"`
+				FirstName string `db:"first_name"`
+				LastName  string `db:"last_name"`
+				AvatarURL string `db:"avatar_url"`
+			}
+
+			qerr := db.Get(&row, `SELECT id, username, password, email, first_name, last_name, avatar_url FROM users WHERE username = ? LIMIT 1`, uname)
+			if qerr == nil {
+				ok := false
+				if strings.HasPrefix(row.Password, "$2a$") || strings.HasPrefix(row.Password, "$2b$") || strings.HasPrefix(row.Password, "$2y$") {
+					ok = bcrypt.CompareHashAndPassword([]byte(row.Password), []byte(password)) == nil
+				} else {
+					ok = row.Password == password
+				}
+
+				if ok {
+					user = core.User{
+						ID:        strconv.Itoa(row.ID),
+						Username:  row.Username,
+						Email:     row.Email,
+						FirstName: row.FirstName,
+						LastName:  row.LastName,
+						AvatarURL: row.AvatarURL,
+					}
+					err = nil
+				}
+			}
+		}
+	}
 
 	if err != nil {
-		return c.JSON(500, ports.Response[any]{
-			Status:  500,
-			Message: err.Error(),
+		return c.JSON(401, ports.Response[any]{
+			Status:  401,
+			Message: "Invalid username or password",
 		})
 	}
 
 	token, err := uas.sessionService.Create(user.ID, user.Username, uas.secret)
-
 	if err != nil {
 		log.Println(user.ID, user.Username, uas.secret, err)
 		return c.JSON(500, ports.Response[any]{
@@ -132,7 +176,7 @@ func (uas *UsersAPIService) SignIn(c echo.Context) error {
 		})
 	}
 
-	// Set session token cookie (HttpOnly). Browser will send it automatically on same-origin requests.
+	// Set session token cookie (HttpOnly)
 	cookie := new(http.Cookie)
 	cookie.Name = "session_token"
 	cookie.Value = token.Token
