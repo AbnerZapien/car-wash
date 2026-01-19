@@ -27,6 +27,7 @@ func (m *MeAPIService) RegisterRoutes() {
 	m.httpService.GET("/me", m.GetMe)
 	m.httpService.PUT("/me", m.UpdateMe)
 	m.httpService.GET("/me/subscription", m.GetMySubscription)
+	m.httpService.GET("/me/history", m.GetMyHistory)
 }
 
 type meRow struct {
@@ -203,4 +204,51 @@ func nullIfEmpty(s string) any {
 		return nil
 	}
 	return s
+}
+
+type historyItem struct {
+	ID              string `json:"id" db:"id"`
+	UserID          int    `json:"userId" db:"user_id"`
+	LocationID      string `json:"locationId" db:"location_id"`
+	LocationName    string `json:"locationName" db:"location_name"`
+	LocationAddress string `json:"locationAddress" db:"location_address"`
+	ScannedAt       string `json:"scannedAt" db:"scanned_at"`
+	Result          string `json:"result" db:"result"`
+	Reason          string `json:"reason" db:"reason"`
+	RawQR           string `json:"rawQr" db:"raw_qr"`
+}
+
+func (m *MeAPIService) GetMyHistory(c echo.Context) error {
+	if m.db == nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db not configured"})
+	}
+
+	uid, ok := m.authedUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	items := []historyItem{}
+	// Return the most recent 100 events for now
+	err := m.db.Select(&items, `
+		SELECT e.id,
+		       e.user_id,
+		       IFNULL(e.location_id,'') as location_id,
+		       IFNULL(l.name,'') as location_name,
+		       IFNULL(l.address,'') as location_address,
+		       e.scanned_at,
+		       e.result,
+		       IFNULL(e.reason,'') as reason,
+		       e.raw_qr
+		FROM wash_events e
+		LEFT JOIN locations l ON l.id = e.location_id
+		WHERE e.user_id = ?
+		ORDER BY e.scanned_at DESC
+		LIMIT 100
+	`, uid)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"items": items})
 }
