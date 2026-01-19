@@ -40,4 +40,4 @@ COPY --from=gobuild /app/static /app/static
 COPY --from=gobuild /app/db /app/db
 
 # Render provides PORT (default 10000) :contentReference[oaicite:1]{index=1}
-CMD ["sh","-c","mkdir -p /app/db && test -f /app/db/main.db || sqlite3 /app/db/main.db < /app/db/schema.sql; GO_PORT=${PORT:-10000} ENV=production ./server"]
+CMD ["sh","-c","mkdir -p /app/db && if [ ! -f /app/db/main.db ]; then sqlite3 /app/db/main.db < /app/db/schema.sql; sqlite3 /app/db/main.db < /app/db/seed.sql; fi; GO_PORT=${PORT:-10000} ENV=production ./server"]
