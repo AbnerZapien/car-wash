@@ -1,5 +1,4 @@
 import { Html5Qrcode } from 'html5-qrcode';
-import { SEED_USERS, SEED_SUBSCRIPTIONS } from '../adapters/mockData';
 
 interface ScannedUser {
   name: string;
@@ -7,6 +6,15 @@ interface ScannedUser {
 }
 
 const READER_ID = 'qr-reader';
+
+type ScanAPIResponse = {
+  allowed: boolean;
+  reason?: string;
+  userId?: number;
+  planId?: string;
+  planName?: string;
+  locationId?: string;
+};
 
 export function scannerStore() {
   let qr: Html5Qrcode | null = null;
@@ -26,29 +34,32 @@ export function scannerStore() {
     scannedUser: null as ScannedUser | null,
     error: null as string | null,
 
+    // NEW: used by the modal template
+    scanAllowed: true as boolean | null,
+    scanReason: '' as string,
+
+    // Demo default
+    locationId: 'loc-1',
+
     async init() {
       if (initialized) return;
       initialized = true;
-
-      console.log('[QR] init() called');
       await this.startScan();
     },
 
     async startScan() {
-      console.log('[QR] startScan() called');
-
       this.error = null;
       this.scannedUser = null;
       this.showSuccessModal = false;
+      this.scanAllowed = null;
+      this.scanReason = '';
 
       const el = document.getElementById(READER_ID) as HTMLElement | null;
       if (!el) {
         this.error = 'Scanner element not found (#qr-reader).';
-        console.error('[QR] missing #qr-reader element');
         return;
       }
 
-      // Force size before start (prevents 0-width container issues)
       el.style.width = '100%';
       el.style.height = '100%';
       el.style.minWidth = '100%';
@@ -62,7 +73,6 @@ export function scannerStore() {
       try {
         const inst = ensure();
 
-        // Prefer explicit camera id when possible (more reliable on desktop)
         let cameraConfig: any = { facingMode: 'environment' };
         try {
           const cams = await Html5Qrcode.getCameras();
@@ -74,7 +84,7 @@ export function scannerStore() {
           { fps: 10, qrbox: { width: 250, height: 250 } },
           async (decodedText) => {
             console.log('[QR] decodedText:', decodedText);
-            this.handleScanResult(decodedText);
+            await this.handleScanResult(decodedText);
             await this.stopScan();
           },
           () => {
@@ -83,7 +93,6 @@ export function scannerStore() {
           }
         );
 
-        console.log('[QR] camera started OK');
         this.scanning = true;
       } catch (e: any) {
         this.scanning = false;
@@ -91,7 +100,6 @@ export function scannerStore() {
           e?.name === 'NotAllowedError'
             ? 'Camera permission denied. Please allow camera access and try again.'
             : (e?.message ?? String(e));
-        console.error('[QR] startScan error:', e);
       } finally {
         starting = false;
       }
@@ -136,64 +144,65 @@ export function scannerStore() {
         if (!file) return;
 
         const wasScanning = this.scanning;
-        if (wasScanning) {
-          // REQUIRED: html5-qrcode cannot scanFile while camera is running
-          await this.stopScan();
-        }
+        if (wasScanning) await this.stopScan();
 
         try {
           const inst = ensure();
           const decodedText = await inst.scanFile(file, true);
           console.log('[QR] decodedText (file):', decodedText);
-          this.handleScanResult(decodedText);
+          await this.handleScanResult(decodedText);
         } catch (e: any) {
           this.error = e?.message ?? 'Failed to read QR from image.';
-          console.error('[QR] scanFile error:', e);
         } finally {
-          // If user was scanning and we didn't show a success modal, resume camera.
-          if (wasScanning && !this.showSuccessModal) {
-            await this.startScan();
-          }
+          if (wasScanning && !this.showSuccessModal) await this.startScan();
         }
       };
       input.click();
     },
 
-    handleScanResult(code: string) {
-      console.log('[QR] handleScanResult:', code);
+    async handleScanResult(code: string) {
+      this.error = null;
+      this.scanAllowed = null;
+      this.scanReason = '';
 
-      const parts = code.split('-');
-      if (parts.length >= 2 && parts[0] === 'CARWASH') {
-        const userId = parts[1];
-        const user = SEED_USERS.find((u) => u.id === userId);
-        const sub = SEED_SUBSCRIPTIONS.find((s) => s.userId === userId);
+      try {
+        const res = await fetch('/api/v1/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qr: code, locationId: this.locationId }),
+        });
 
-        if (user && sub) {
+        const data = (await res.json()) as ScanAPIResponse;
+
+        if (data.allowed) {
+          this.scanAllowed = true;
           this.scannedUser = {
-            name: `${user.firstName} ${user.lastName}`,
-            plan: sub.plan.name,
+            name: data.userId ? `Member #${data.userId}` : 'Member',
+            plan: data.planName || data.planId || 'Active Plan',
           };
-          this.showSuccessModal = true;
-          this.error = null;
         } else {
-          this.error = 'Invalid or expired access code';
+          this.scanAllowed = false;
+          this.scanReason = data.reason || 'Denied';
+          this.scannedUser = null;
         }
-      } else {
-        this.error = 'Invalid QR code format';
+
+        this.showSuccessModal = true;
+      } catch {
+        this.error = 'Scan service unavailable. Try again.';
       }
     },
 
     closeModal() {
       this.showSuccessModal = false;
       this.scannedUser = null;
+      this.scanAllowed = null;
+      this.scanReason = '';
       this.startScan();
     },
 
-    simulateScan() {
-      const user = SEED_USERS[0];
-      const code = `CARWASH-${user.id}-${Date.now()}`;
-      console.log('[QR] decodedText (simulate):', code);
-      this.handleScanResult(code);
+    async simulateScan() {
+      const code = `CARWASH-4-${Date.now()}`;
+      await this.handleScanResult(code);
     },
   };
 }

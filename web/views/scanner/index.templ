@@ -87,13 +87,13 @@ templ Scanner(vm ScannerVM) {
 							<div class="relative w-full overflow-hidden bg-slate-900 aspect-[9/16] rounded-lg flex items-center justify-center">
 								<!-- Simulated Camera View -->
 								<div
-									class="w-full h-full bg-center bg-no-repeat bg-cover"
+									x-show="!scanning" x-cloak class="w-full h-full bg-center bg-no-repeat bg-cover"
 									style="background-image: url('https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=600'); filter: blur(2px); transform: scale(1.05);"
 								></div>
 								<!-- Camera feed -->
-<div id="qr-reader" class="absolute inset-0 z-0 z-20"></div>
+<div id="qr-reader" class="absolute inset-0 z-20"></div>
 <!-- Scanner Box -->
-								<div class="scanner-box z-10 pointer-events-none z-30 pointer-events-none">
+								<div class="scanner-box z-30 pointer-events-none">
 									<div class="corner-bottom-left"></div>
 									<div class="corner-bottom-right"></div>
 								</div>
@@ -159,17 +159,19 @@ templ Scanner(vm ScannerVM) {
 					x-transition:leave-end="opacity-0 scale-95"
 					class="bg-white w-full max-w-sm rounded-xl shadow-2xl p-8 flex flex-col items-center text-center"
 				>
-					<div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-						<span class="material-symbols-outlined text-5xl text-green-500">check_circle</span>
-					</div>
-					<h2 class="text-2xl font-bold text-slate-800 mb-2">Access Granted!</h2>
-					<p class="text-slate-600 mb-1">Welcome back, <span x-text="scannedUser?.name"></span>.</p>
-					<p class="text-slate-600 mb-6">Plan: <span x-text="scannedUser?.plan"></span></p>
+					<div class="w-20 h-20 rounded-full flex items-center justify-center mb-6" :class="scanAllowed ? 'bg-green-100' : 'bg-red-100'">
+  <span class="material-symbols-outlined text-5xl" :class="scanAllowed ? 'text-green-500' : 'text-red-500'" x-text="scanAllowed ? 'check_circle' : 'cancel'"></span>
+</div>
+<h2 class="text-2xl font-bold text-slate-800 mb-2" x-text="scanAllowed ? 'Access Granted!' : 'Access Denied'"></h2>
+<p class="text-slate-600 mb-1" x-show="scanAllowed">Welcome back, <span x-text="scannedUser?.name"></span>.</p>
+<p class="text-slate-600 mb-6" x-show="scanAllowed">Plan: <span x-text="scannedUser?.plan"></span></p>
+<p class="text-slate-600 mb-6" x-show="!scanAllowed">Reason: <span x-text="scanReason"></span></p>
+
 					<button
 						@click="closeModal()"
 						class="w-full flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-4 bg-cyan-500 text-white text-base font-bold leading-normal tracking-wide hover:bg-cyan-600 transition-colors"
 					>
-						<span class="truncate">Done</span>
+						<span class="truncate" x-text="scanAllowed ? 'Done' : 'Try Again'"></span>
 					</button>
 				</div>
 			</div>
