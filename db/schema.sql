@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER NOT NULL,
     username TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
+    first_name TEXT NOT NULL DEFAULT '',
+    last_name TEXT NOT NULL DEFAULT '',
+    avatar_url TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );

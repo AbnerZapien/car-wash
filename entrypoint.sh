@@ -6,18 +6,26 @@ DB_DIR="$(dirname "$DB_PATH")"
 
 mkdir -p "$DB_DIR"
 
+migrate_users() {
+  sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
+  sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN first_name TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
+  sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN last_name TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
+  sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
+}
+
 # Initialize DB if missing
 if [ ! -f "$DB_PATH" ]; then
   echo "[entrypoint] initializing sqlite db at $DB_PATH"
   sqlite3 "$DB_PATH" < /app/db/schema.sql
+
+  # Ensure profile columns exist before seed.sql touches them
+  migrate_users
+
   sqlite3 "$DB_PATH" < /app/db/seed.sql
 fi
 
-# Best-effort migrations (safe if columns already exist)
-sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
-sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN first_name TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
-sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN last_name TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
-sqlite3 "$DB_PATH" "ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT '';" 2>/dev/null || true
+# Always ensure migrations are applied (safe if columns already exist)
+migrate_users
 
 export GO_PORT="${PORT:-10000}"
 export ENV="${ENV:-production}"
