@@ -28,13 +28,17 @@ interface AuthStorageData {
   token: string | null;
 }
 
+function authHeaders() {
+  const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
+  const token = auth?.token;
+  return token ? { 'X-Session-Token': token } : {};
+}
+
 export function accountStore() {
   return {
-    // API-backed data
     me: null as MeResponse | null,
     subscription: null as SubscriptionResponse['subscription'] | null,
 
-    // Form state
     firstName: '',
     lastName: '',
     email: '',
@@ -44,29 +48,28 @@ export function accountStore() {
     saved: false,
     loading: false,
 
-    // DEV-only: match your backend demo header
-    demoUserId: 4,
-
     async init() {
       this.loading = true;
       this.error = null;
       this.saved = false;
 
       try {
-        // Load profile + subscription from API
+        const headers = authHeaders();
+
         const [meRes, subRes] = await Promise.all([
-          fetch('/api/v1/me', { headers: { 'X-Demo-UserId': String(this.demoUserId) } }),
-          fetch('/api/v1/me/subscription', { headers: { 'X-Demo-UserId': String(this.demoUserId) } }),
+          fetch('/api/v1/me', { headers, credentials: 'include' }),
+          fetch('/api/v1/me/subscription', { headers, credentials: 'include' }),
         ]);
 
+        if (meRes.status === 401) throw new Error('Please sign in again.');
         if (!meRes.ok) throw new Error('Failed to load profile');
+
         const me = (await meRes.json()) as MeResponse;
         this.me = me;
 
         const sub = (await subRes.json()) as SubscriptionResponse;
         this.subscription = sub.subscription;
 
-        // Fill form
         this.firstName = me.firstName || '';
         this.lastName = me.lastName || '';
         this.email = me.email || '';
@@ -82,7 +85,6 @@ export function accountStore() {
       this.saved = false;
       this.error = null;
       this.avatarPreview = '';
-
       this.firstName = this.me?.firstName || '';
       this.lastName = this.me?.lastName || '';
       this.email = this.me?.email || '';
@@ -117,12 +119,12 @@ export function accountStore() {
       }
 
       try {
+        const headers = { 'Content-Type': 'application/json', ...authHeaders() };
+
         const res = await fetch('/api/v1/me', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Demo-UserId': String(this.demoUserId),
-          },
+          headers,
+          credentials: 'include',
           body: JSON.stringify({
             email: this.email,
             firstName: this.firstName,
@@ -131,17 +133,15 @@ export function accountStore() {
           }),
         });
 
-        if (!res.ok) {
-          const msg = await res.text();
-          throw new Error(msg || 'Save failed');
-        }
+        if (res.status === 401) throw new Error('Please sign in again.');
+        if (!res.ok) throw new Error('Save failed');
 
         const me = (await res.json()) as MeResponse;
         this.me = me;
         this.avatarPreview = '';
         this.saved = true;
 
-        // Keep local auth storage updated for existing UI pieces
+        // Keep local auth storage user updated for existing UI
         const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
         if (auth?.currentUser) {
           auth.currentUser.email = me.email;

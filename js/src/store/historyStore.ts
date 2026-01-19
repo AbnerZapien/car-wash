@@ -1,3 +1,6 @@
+import { storage } from '../adapters/localStorage';
+import { STORAGE_KEYS } from '../ports/storage';
+
 type MeResponse = {
   id: number;
   username: string;
@@ -14,49 +17,57 @@ type HistoryAPIItem = {
   locationName: string;
   locationAddress: string;
   scannedAt: string;
-  result: string; // allowed|denied
+  result: string;
   reason: string;
   rawQr: string;
 };
 
+interface AuthStorageData {
+  isAuthenticated: boolean;
+  currentUser: any | null;
+  token: string | null;
+}
+
+function authHeaders() {
+  const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
+  const token = auth?.token;
+  return token ? { 'X-Session-Token': token } : {};
+}
+
 export function historyStore() {
   return {
-    // Used by template header avatar
     user: null as MeResponse | null,
-
-    // Template expects washHistory rows with washType/location/date/time
     washHistory: [] as any[],
-
     error: null as string | null,
     loading: false,
-
-    // DEV-only: demo user
-    userId: 4,
 
     async init() {
       this.loading = true;
       this.error = null;
 
       try {
+        const headers = authHeaders();
+
         const [meRes, histRes] = await Promise.all([
-          fetch('/api/v1/me', { headers: { 'X-Demo-UserId': String(this.userId) } }),
-          fetch('/api/v1/me/history', { headers: { 'X-Demo-UserId': String(this.userId) } }),
+          fetch('/api/v1/me', { headers, credentials: 'include' }),
+          fetch('/api/v1/me/history', { headers, credentials: 'include' }),
         ]);
 
+        if (meRes.status === 401) throw new Error('Please sign in again.');
         if (!meRes.ok) throw new Error('Failed to load profile');
+
         this.user = (await meRes.json()) as MeResponse;
 
+        if (histRes.status === 401) throw new Error('Please sign in again.');
         if (!histRes.ok) throw new Error('Failed to load history');
+
         const data = await histRes.json();
         const items: HistoryAPIItem[] = data.items || [];
 
         this.washHistory = items.map((e) => {
           const d = new Date(e.scannedAt);
-          const dateStr = d.toISOString(); // feed into formatWashDate
+          const dateStr = d.toISOString();
           const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-          const locName = e.locationName || e.locationId || 'Unknown location';
-          const locAddr = e.locationAddress || '';
 
           const washType =
             e.result === 'allowed'
@@ -66,7 +77,10 @@ export function historyStore() {
           return {
             id: e.id,
             washType,
-            location: { name: locName, address: locAddr },
+            location: {
+              name: e.locationName || e.locationId || 'Unknown location',
+              address: e.locationAddress || '',
+            },
             date: dateStr,
             time: timeStr,
           };
