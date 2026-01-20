@@ -5,8 +5,10 @@ import (
 	"os"
 	"strings"
 
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	"time"
 )
 
 type MeAPIService struct {
@@ -27,6 +29,7 @@ func (m *MeAPIService) RegisterRoutes() {
 	m.httpService.GET("/me", m.GetMe)
 	m.httpService.PUT("/me", m.UpdateMe)
 	m.httpService.GET("/me/subscription", m.GetMySubscription)
+	m.httpService.POST("/me/subscription", m.SetMySubscription)
 	m.httpService.GET("/me/history", m.GetMyHistory)
 }
 
@@ -251,4 +254,51 @@ func (m *MeAPIService) GetMyHistory(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{"items": items})
+}
+
+type setSubReq struct {
+	PlanID string `json:"planId"`
+}
+
+func (m *MeAPIService) SetMySubscription(c echo.Context) error {
+	if m.db == nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db not configured"})
+	}
+
+	uid, ok := m.authedUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	var req setSubReq
+	if err := c.Bind(&req); err != nil || req.PlanID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "planId required"})
+	}
+
+	// Validate plan exists
+	var exists int
+	q1 := m.db.Rebind(`SELECT 1 FROM plans WHERE id = ? LIMIT 1`)
+	if err := m.db.Get(&exists, q1, req.PlanID); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid planId"})
+	}
+
+	// Upsert one active subscription per user
+	subID := "sub-" + fmt.Sprint(uid)
+	start := time.Now().Format("2006-01-02")
+	next := time.Now().AddDate(0, 1, 0).Format("2006-01-02")
+
+	q2 := m.db.Rebind(`
+		INSERT INTO subscriptions (id, user_id, plan_id, status, start_date, next_billing_date, wash_count)
+		VALUES (?, ?, ?, 'active', ?, ?, 0)
+		ON CONFLICT (id) DO UPDATE
+		SET plan_id = EXCLUDED.plan_id,
+		    status = 'active',
+		    start_date = EXCLUDED.start_date,
+		    next_billing_date = EXCLUDED.next_billing_date
+	`)
+	if _, err := m.db.Exec(q2, subID, uid, req.PlanID, start, next); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return m.GetMySubscription(c)
 }
