@@ -31,7 +31,7 @@ templ Index(vm IndexVM) {
 			{ children... }
 			<!-- Scripts -->
 			if os.Getenv("ENV") == "development" {
-				<script defer type="module" src="http://localhost:8080/src/main.js"></script>
+				<script defer type="module" src="http://localhost:8080/src/main.ts"></script>
 				<script defer type="module" src="http://localhost:8080/@vite/client"></script>
 			} else {
 				<script defer type="module" src="/static/dist/app.js"></script>

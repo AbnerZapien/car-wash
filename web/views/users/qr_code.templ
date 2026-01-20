@@ -14,7 +14,7 @@ templ QRCode(vm QRCodeVM) {
 		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 		<div
 			class="relative flex min-h-screen w-full flex-col bg-slate-100 overflow-x-hidden"
-			x-data="qrCodeStore"
+			x-data="qrCodeStore()" x-init="init()"
 			@beforeunload.window="destroy()"
 		>
 			<!-- Header -->

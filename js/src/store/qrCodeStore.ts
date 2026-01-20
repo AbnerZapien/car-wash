@@ -1,94 +1,80 @@
-import { storage } from '../adapters/localStorage';
-import { STORAGE_KEYS } from '../ports/storage';
-import { SEED_SUBSCRIPTIONS } from '../adapters/mockData';
-import type { User } from '../core/models/user';
-import type { Subscription } from '../core/models/subscription';
-import type { CodeTimer } from '../core/models/qrCode';
-
-interface AuthStorageData {
-  isAuthenticated: boolean;
-  currentUser: User | null;
-  token: string | null;
-}
-
 export function qrCodeStore() {
   return {
+    user: null as any,
+    userName: 'Loading...',
+    planName: 'Loading...',
+
     code: '',
-    user: null as User | null,
-    subscription: null as Subscription | null,
-    timer: { minutes: 5, seconds: 0, expired: false } as CodeTimer,
-    intervalId: null as ReturnType<typeof setInterval> | null,
+    qrCodeUrl: '',
 
-    get formattedMinutes(): string {
-      return String(this.timer.minutes).padStart(2, '0');
+    timer: { total: 300, expired: false, intervalId: null as any },
+
+    get formattedMinutes() {
+      const m = Math.floor(this.timer.total / 60);
+      return String(m).padStart(2, '0');
     },
 
-    get formattedSeconds(): string {
-      return String(this.timer.seconds).padStart(2, '0');
+    get formattedSeconds() {
+      const s = this.timer.total % 60;
+      return String(s).padStart(2, '0');
     },
 
-    get planName(): string {
-      return this.subscription?.plan.name || 'No Plan';
+    async init() {
+      await this.refreshCode();
     },
 
-    get userName(): string {
-      if (!this.user) return '';
-      return `${this.user.firstName} ${this.user.lastName}`;
-    },
-
-    get qrCodeUrl(): string {
-      return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(this.code)}`;
-    },
-
-    init() {
-      const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
-      if (auth?.currentUser) {
-        this.user = auth.currentUser;
-        this.subscription =
-          SEED_SUBSCRIPTIONS.find((s) => s.userId === this.user?.id) ||
-          SEED_SUBSCRIPTIONS[0];
-      }
-
-      this.generateCode();
-      this.startTimer();
-    },
-
-    generateCode() {
-      const timestamp = Date.now();
-      const userId = this.user?.id || 'guest';
-      this.code = `CARWASH-${userId}-${timestamp}`;
-    },
-
-    refreshCode() {
-      this.stopTimer();
-      this.timer = { minutes: 5, seconds: 0, expired: false };
-      this.generateCode();
-      this.startTimer();
+    destroy() {
+      if (this.timer.intervalId) clearInterval(this.timer.intervalId);
+      this.timer.intervalId = null;
     },
 
     startTimer() {
-      this.intervalId = setInterval(() => {
-        if (this.timer.seconds > 0) {
-          this.timer.seconds--;
-        } else if (this.timer.minutes > 0) {
-          this.timer.minutes--;
-          this.timer.seconds = 59;
-        } else {
+      this.destroy();
+      this.timer.total = 300;
+      this.timer.expired = false;
+
+      this.timer.intervalId = setInterval(() => {
+        this.timer.total -= 1;
+        if (this.timer.total <= 0) {
+          this.timer.total = 0;
           this.timer.expired = true;
-          this.stopTimer();
+          this.destroy();
         }
       }, 1000);
     },
 
-    stopTimer() {
-      if (this.intervalId) {
-        clearInterval(this.intervalId);
-        this.intervalId = null;
-      }
-    },
+    async refreshCode() {
+      try {
+        const meRes = await fetch('/api/v1/me', { credentials: 'include' });
+        if (meRes.status === 401) throw new Error('Please sign in again.');
+        if (!meRes.ok) throw new Error('Failed to load profile');
 
-    destroy() {
-      this.stopTimer();
+        const me = await meRes.json();
+        this.user = me;
+
+        const fullName = `${me.firstName || ''} ${me.lastName || ''}`.trim();
+        this.userName = fullName || me.username || 'Member';
+
+        const subRes = await fetch('/api/v1/me/subscription', { credentials: 'include' });
+        if (subRes.ok) {
+          const sub = await subRes.json();
+          this.planName = sub?.subscription?.planName || 'Active Plan';
+        } else {
+          this.planName = 'Active Plan';
+        }
+
+        // IMPORTANT: Backend expects CARWASH-<numericId>-<timestamp>
+        this.code = `CARWASH-${me.id}-${Date.now()}`;
+        this.qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(this.code)}`;
+
+        this.startTimer();
+      } catch (e: any) {
+        this.userName = '—';
+        this.planName = '—';
+        this.code = '';
+        this.qrCodeUrl = '';
+        console.error(e);
+      }
     },
   };
 }
