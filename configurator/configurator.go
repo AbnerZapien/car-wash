@@ -4,9 +4,6 @@ import (
 	"os"
 
 	auth "github.com/edlingao/go-auth/auth/core"
-	calculatorAdapter "github.com/edlingao/hexago/internal/calculator/adapters"
-	calculatorCore "github.com/edlingao/hexago/internal/calculator/core"
-	calculatorPorts "github.com/edlingao/hexago/internal/calculator/ports"
 	usersAdapter "github.com/edlingao/hexago/internal/users/adapters"
 	usersCore "github.com/edlingao/hexago/internal/users/core"
 	usersPorts "github.com/edlingao/hexago/internal/users/ports"
@@ -16,13 +13,11 @@ import (
 )
 
 type Configurator struct {
-	CalculatorHandler calculatorAdapter.CalculatorHandler
-	CalculatorWebPage calculatorAdapter.CalculatorWebpage
-	UserAPIHandler    usersAdapter.UsersAPIService
-	UserWebPage       usersAdapter.UsersWebService
-	Echo              *echo.Echo
-	v1                *echo.Group
-	root              *echo.Group
+	UserAPIHandler usersAdapter.UsersAPIService
+	UserWebPage    usersAdapter.UsersWebService
+	Echo           *echo.Echo
+	v1             *echo.Group
+	root           *echo.Group
 }
 
 func New(
@@ -42,33 +37,12 @@ func New(
 }
 
 func (c *Configurator) AddCalculatorAPI() *Configurator {
-	dbService := calculatorAdapter.NewCalculatorDB[calculatorCore.Calculation]()
-	calcService := calculatorPorts.NewCalculator(dbService)
-	calculatorHttpService := c.v1.Group("/calculator")
-
-	calculationHandler := calculatorAdapter.NewCalculatorHandler(
-		"/calculator",
-		calculatorHttpService,
-		calcService,
-		dbService,
-	)
-
-	c.CalculatorHandler = *calculationHandler
 
 	return c
 }
 
 func (c *Configurator) AddCalculatorWeb() *Configurator {
-	dbService := calculatorAdapter.NewCalculatorDB[calculatorCore.Calculation]()
-	calcService := calculatorPorts.NewCalculator(dbService)
-	calculatorWebpageService := calculatorAdapter.NewCalculatorWebpage(
-		"/",
-		c.root,
-		calcService,
-		dbService,
-	)
 
-	c.CalculatorWebPage = *calculatorWebpageService
 	return c
 }
 
@@ -98,9 +72,6 @@ func (c *Configurator) AddUserAPI() *Configurator {
 func (c *Configurator) AddUserWeb() *Configurator {
 	dbService := usersAdapter.NewDB[usersCore.User]()
 	sessionDBService := usersAdapter.NewSessionStore[auth.Session]()
-	calculatorService := calculatorPorts.NewCalculator(
-		calculatorAdapter.NewCalculatorDB[calculatorCore.Calculation](),
-	)
 
 	userService := usersPorts.NewUserService(dbService)
 	usersHttpService := c.root
@@ -115,9 +86,7 @@ func (c *Configurator) AddUserWeb() *Configurator {
 		sessionService,
 		dbService,
 		userService,
-		calculatorService,
 	)
-
 	c.UserWebPage = *usersWebPage
 
 	return c

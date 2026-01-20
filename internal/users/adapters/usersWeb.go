@@ -8,7 +8,6 @@ import (
 
 	authCore "github.com/edlingao/go-auth/auth/core"
 	"github.com/edlingao/hexago/common/delivery/web"
-	calculatorPorts "github.com/edlingao/hexago/internal/calculator/ports"
 	"github.com/edlingao/hexago/internal/users/ports"
 	"github.com/edlingao/hexago/web/views/admin"
 	"github.com/edlingao/hexago/web/views/auth"
@@ -18,12 +17,11 @@ import (
 )
 
 type UsersWebService struct {
-	URL               string
-	CalculatorService *calculatorPorts.Calculator
-	http              *echo.Group
-	sessionService    authCore.SessionService
-	usersService      ports.UserServiceMethods
-	dbService         ports.StoringUsers
+	URL            string
+	http           *echo.Group
+	sessionService authCore.SessionService
+	usersService   ports.UserServiceMethods
+	dbService      ports.StoringUsers
 }
 
 func NewUsersWebService(
@@ -32,16 +30,14 @@ func NewUsersWebService(
 	sessionService authCore.SessionService,
 	dbService ports.StoringUsers,
 	usersService ports.UserServiceMethods,
-	calculatorService *calculatorPorts.Calculator,
 ) *UsersWebService {
 
 	usersWebService := &UsersWebService{
-		URL:               url,
-		CalculatorService: calculatorService,
-		http:              httpService,
-		sessionService:    sessionService,
-		dbService:         dbService,
-		usersService:      usersService,
+		URL:            url,
+		http:           httpService,
+		sessionService: sessionService,
+		dbService:      dbService,
+		usersService:   usersService,
 	}
 	// Public routes
 	usersWebService.http.GET("/login", usersWebService.LoginView)
@@ -60,9 +56,6 @@ func NewUsersWebService(
 	// Protected routes
 	protectedAPI := usersWebService.http.Group("", sessionService.APIAuth)
 	protectedAPI.GET("/all", usersWebService.GetAllUsers)
-
-	protectedWeb := usersWebService.http.Group("", sessionService.WebAuth)
-	protectedWeb.GET("/home", usersWebService.Home)
 
 	return usersWebService
 }
@@ -116,7 +109,7 @@ func (uws *UsersWebService) LoginEndpoint(c echo.Context) error {
 	}
 	cookie := uws.SetCookie(token.Token, c)
 	c.SetCookie(cookie)
-	c.Response().Header().Set("HX-Location", "/home")
+	c.Response().Header().Set("HX-Location", "/dashboard")
 
 	return web.Render(
 		c,
@@ -174,7 +167,7 @@ func (uws *UsersWebService) SignUpEndpoint(c echo.Context) error {
 	cookie := uws.SetCookie(token.Token, c)
 	c.SetCookie(cookie)
 
-	c.Response().Header().Set("HX-Location", "/home")
+	c.Response().Header().Set("HX-Location", "/dashboard")
 
 	return web.Render(
 		c,
@@ -182,18 +175,6 @@ func (uws *UsersWebService) SignUpEndpoint(c echo.Context) error {
 		200,
 	)
 
-}
-
-func (uws *UsersWebService) Home(c echo.Context) error {
-	history := uws.CalculatorService.GetAllCalculations()
-
-	return web.Render(
-		c,
-		users.Home(users.HomeVM{
-			History: history,
-		}),
-		200,
-	)
 }
 
 func (uh UsersWebService) SetCookie(key string, c echo.Context) *http.Cookie {
