@@ -15,6 +15,56 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func insertUser(username, password, email, firstName, lastName, avatarURL string) (core.User, error) {
+	db, err := ConnectDB()
+	if err != nil {
+		return core.User{}, err
+	}
+	defer db.Close()
+
+	// Enforce unique username/email at app level
+	var exists int
+	q1 := db.Rebind(`SELECT 1 FROM users WHERE username = ? LIMIT 1`)
+	if err := db.Get(&exists, q1, username); err == nil && exists == 1 {
+		return core.User{}, echo.NewHTTPError(409, "Username already exists")
+	}
+	if email != "" {
+		q2 := db.Rebind(`SELECT 1 FROM users WHERE email = ? LIMIT 1`)
+		if err := db.Get(&exists, q2, email); err == nil && exists == 1 {
+			return core.User{}, echo.NewHTTPError(409, "Email already exists")
+		}
+	}
+
+	// Insert and return row
+	q := db.Rebind(`
+		INSERT INTO users (username, password, email, first_name, last_name, avatar_url)
+		VALUES (?, ?, ?, ?, ?, ?)
+		RETURNING id, username, password, email, first_name, last_name, avatar_url
+	`)
+	var row struct {
+		ID        int64  `db:"id"`
+		Username  string `db:"username"`
+		Password  string `db:"password"`
+		Email     string `db:"email"`
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+		AvatarURL string `db:"avatar_url"`
+	}
+	if err := db.Get(&row, q, username, password, email, firstName, lastName, avatarURL); err != nil {
+		return core.User{}, err
+	}
+
+	return core.User{
+		ID:        strconv.FormatInt(row.ID, 10),
+		Username:  row.Username,
+		Password:  row.Password,
+		Email:     row.Email,
+		FirstName: row.FirstName,
+		LastName:  row.LastName,
+		AvatarURL: row.AvatarURL,
+	}, nil
+}
+
 func resolveUsername(identifier string) string {
 	// If the user typed an email, try to map to the stored username.
 	if !strings.Contains(identifier, "@") {
@@ -201,43 +251,40 @@ func (uas *UsersAPIService) SignIn(c echo.Context) error {
 }
 
 func (uas *UsersAPIService) SignUp(c echo.Context) error {
-	username := c.FormValue("username")
+	username := strings.TrimSpace(c.FormValue("username"))
 	password := c.FormValue("password")
-	email := c.FormValue("email")
-	firstName := c.FormValue("firstName")
-	lastName := c.FormValue("lastName")
-	avatarUrl := c.FormValue("avatarUrl")
-	err := uas.usersService.Register(username, password)
+	email := strings.TrimSpace(c.FormValue("email"))
+	firstName := strings.TrimSpace(c.FormValue("firstName"))
+	lastName := strings.TrimSpace(c.FormValue("lastName"))
+	avatarUrl := strings.TrimSpace(c.FormValue("avatarUrl"))
 
-	if err != nil {
-		return c.JSON(500, ports.Response[any]{
-			Status:  500,
-			Message: err.Error(),
-		})
+	if username == "" || password == "" {
+		return c.JSON(400, ports.Response[any]{Status: 400, Message: "Username and password are required"})
+	}
+	if email != "" && !strings.Contains(email, "@") {
+		return c.JSON(400, ports.Response[any]{Status: 400, Message: "Invalid email"})
 	}
 
-	user, err := uas.usersService.GetByUsername(username)
-
-	// Best-effort profile fields update (email/name/avatar)
-	setProfileFields(user.ID, email, firstName, lastName, avatarUrl)
-
+	user, err := insertUser(username, password, email, firstName, lastName, avatarUrl)
 	if err != nil {
-		return c.JSON(500, ports.Response[any]{
-			Status:  500,
-			Message: err.Error(),
-		})
+		// Handle 409 from echo HTTPError
+		if he, ok := err.(*echo.HTTPError); ok {
+			code := he.Code
+			msg := "Signup failed"
+			if s, ok := he.Message.(string); ok {
+				msg = s
+			}
+			return c.JSON(code, ports.Response[any]{Status: code, Message: msg})
+		}
+		return c.JSON(500, ports.Response[any]{Status: 500, Message: err.Error()})
 	}
 
 	token, err := uas.sessionService.Create(user.ID, user.Username, uas.secret)
-
 	if err != nil {
-		return c.JSON(500, ports.Response[any]{
-			Status:  500,
-			Message: err.Error(),
-		})
+		return c.JSON(500, ports.Response[any]{Status: 500, Message: err.Error()})
 	}
 
-	// Set session token cookie (HttpOnly). Browser will send it automatically on same-origin requests.
+	// Set session token cookie (HttpOnly)
 	cookie := new(http.Cookie)
 	cookie.Name = "session_token"
 	cookie.Value = token.Token
