@@ -1,0 +1,54 @@
+package users
+
+import "github.com/edlingao/hexago/web/templates"
+
+type ChoosePlanVM struct{ Error error }
+
+templ ChoosePlan(vm ChoosePlanVM) {
+	@templates.Index(templates.IndexVM{Title: "Choose Plan - Hedgestone Carwash", Error: vm.Error}) {
+		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+		<div class="min-h-screen bg-slate-100" x-data="choosePlanStore()" x-init="init()">
+			<header class="bg-white border-b border-slate-200">
+				<div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+					<a href="/" class="flex items-center gap-3 text-slate-800">
+						<span class="material-symbols-outlined text-3xl text-blue-600">local_car_wash</span>
+						<span class="text-xl font-bold">Hedgestone Carwash</span>
+					</a>
+					<button class="text-slate-600 hover:text-red-600 text-sm font-medium"
+						@click="$store.auth && $store.auth.logout ? $store.auth.logout() : (window.location.href='/login')">
+						Logout
+					</button>
+				</div>
+			</header>
+
+			<main class="max-w-5xl mx-auto px-4 py-10">
+				<h1 class="text-3xl font-black text-slate-800">Choose your plan</h1>
+				<p class="text-slate-500 mt-2">Pick a subscription to activate your account.</p>
+
+				<div x-show="error" x-cloak class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg" x-text="error"></div>
+
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+					<template x-for="p in plans" :key="p.id">
+						<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
+							<h3 class="text-xl font-bold text-slate-800" x-text="p.name"></h3>
+							<p class="text-slate-500 mt-1" x-text="formatPrice(p.priceCents)"></p>
+							<ul class="mt-4 space-y-2 text-sm text-slate-600">
+								<template x-for="f in p.features" :key="f">
+									<li class="flex items-start gap-2">
+										<span class="material-symbols-outlined text-green-600 text-base">check</span>
+										<span x-text="f"></span>
+									</li>
+								</template>
+							</ul>
+
+							<button class="mt-6 h-11 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-60"
+								@click="selectPlan(p.id)" :disabled="loading">
+								<span x-text="loading ? 'Activating…' : 'Choose Plan'"></span>
+							</button>
+						</div>
+					</template>
+				</div>
+			</main>
+		</div>
+	}
+}

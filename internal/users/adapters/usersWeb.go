@@ -47,6 +47,7 @@ func NewUsersWebService(
 
 	// Mock views (public for development - uses Alpine.js localStorage auth)
 	usersWebService.http.GET("/dashboard", usersWebService.Dashboard)
+	usersWebService.http.GET("/choose-plan", usersWebService.ChoosePlan)
 	usersWebService.http.GET("/history", usersWebService.History)
 	usersWebService.http.GET("/account", usersWebService.Account)
 	usersWebService.http.GET("/qr-code", usersWebService.QRCode)
@@ -238,4 +239,8 @@ func (uws *UsersWebService) Account(c echo.Context) error {
 		users.Account(users.AccountVM{}),
 		200,
 	)
+}
+
+func (uws *UsersWebService) ChoosePlan(c echo.Context) error {
+	return web.Render(c, users.ChoosePlan(users.ChoosePlanVM{}), 200)
 }
