@@ -114,6 +114,12 @@ export function dashboardStore() {
         const subRes = await fetch('/api/v1/me/subscription', { headers, credentials: 'include' });
         const subJson = (await subRes.json()) as SubResponse;
 
+        // Login guard: force plan selection if no active subscription
+        if (!subJson || !subJson.active || !subJson.subscription) {
+          window.location.href = '/choose-plan';
+          return;
+        }
+
         if (subJson.subscription) {
           let features: string[] = [];
           try {
