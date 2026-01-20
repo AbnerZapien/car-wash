@@ -11,6 +11,11 @@ import { choosePlanStore } from './choosePlanStore';
 export function registerStores() {
   console.log('Registering Alpine stores...');
   Alpine.data('authStore', authStore);
+  // Global auth store so any page can call $store.auth.logout()
+  const auth = authStore();
+  Alpine.store('auth', auth as any);
+  if (typeof (auth as any).init === 'function') (auth as any).init();
+
   Alpine.data('dashboardStore', dashboardStore);
   Alpine.data('qrCodeStore', qrCodeStore);
   Alpine.data('scannerStore', scannerStore);
