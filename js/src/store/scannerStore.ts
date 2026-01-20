@@ -16,6 +16,8 @@ type ScanAPIResponse = {
   locationId?: string;
 };
 
+type CameraInfo = { id: string; label: string };
+
 export function scannerStore() {
   let qr: Html5Qrcode | null = null;
   let starting = false;
@@ -27,6 +29,17 @@ export function scannerStore() {
     return qr;
   };
 
+  const preferBackCameraId = (cams: CameraInfo[]) => {
+    // Labels can be empty until permission granted.
+    const byLabel = cams.find((c) => /back|rear|environment/i.test(c.label));
+    if (byLabel) return byLabel.id;
+
+    // Heuristic: many devices list front first, back later.
+    if (cams.length >= 2) return cams[cams.length - 1].id;
+
+    return cams[0]?.id ?? '';
+  };
+
   return {
     scanning: false,
     flashOn: false,
@@ -34,16 +47,59 @@ export function scannerStore() {
     scannedUser: null as ScannedUser | null,
     error: null as string | null,
 
-    // NEW: used by the modal template
     scanAllowed: true as boolean | null,
     scanReason: '' as string,
 
-    // Demo default
     locationId: 'loc-1',
+
+    // NEW: camera switching
+    cameras: [] as CameraInfo[],
+    activeCameraId: '' as string,
 
     async init() {
       if (initialized) return;
       initialized = true;
+
+      // Preload cameras list (labels may be empty until permission)
+      try {
+        const cams = await Html5Qrcode.getCameras();
+        this.cameras = (cams || []).map((c) => ({ id: c.id, label: c.label || '' }));
+        if (!this.activeCameraId && this.cameras.length) {
+          this.activeCameraId = preferBackCameraId(this.cameras);
+        }
+      } catch {
+        // ignore
+      }
+
+      await this.startScan();
+    },
+
+    async refreshCameras() {
+      try {
+        const cams = await Html5Qrcode.getCameras();
+        this.cameras = (cams || []).map((c) => ({ id: c.id, label: c.label || '' }));
+
+        // If we don't have an active camera yet, pick back/default.
+        if (!this.activeCameraId && this.cameras.length) {
+          this.activeCameraId = preferBackCameraId(this.cameras);
+        }
+      } catch {
+        // ignore
+      }
+    },
+
+    async cycleCamera() {
+      // Only if we have multiple cameras
+      await this.refreshCameras();
+      if (!this.cameras || this.cameras.length < 2) return;
+
+      const currentIdx = this.cameras.findIndex((c) => c.id === this.activeCameraId);
+      const nextIdx = currentIdx >= 0 ? (currentIdx + 1) % this.cameras.length : 0;
+      this.activeCameraId = this.cameras[nextIdx].id;
+
+      // Restart scan on next camera
+      const wasScanning = this.scanning;
+      if (wasScanning) await this.stopScan();
       await this.startScan();
     },
 
@@ -60,24 +116,26 @@ export function scannerStore() {
         return;
       }
 
+      // Force size before start (prevents 0-width container issues)
       el.style.width = '100%';
       el.style.height = '100%';
       el.style.minWidth = '100%';
       el.style.minHeight = '100%';
 
       if (this.scanning || starting) return;
-
       starting = true;
       decodeFails = 0;
 
       try {
         const inst = ensure();
 
-        let cameraConfig: any = { facingMode: 'environment' };
-        try {
-          const cams = await Html5Qrcode.getCameras();
-          if (cams?.length) cameraConfig = { deviceId: { exact: cams[0].id } };
-        } catch {}
+        // Prefer explicit cameraId if known; otherwise prefer back camera via facingMode=environment
+        let cameraConfig: any;
+        if (this.activeCameraId) {
+          cameraConfig = { deviceId: { exact: this.activeCameraId } };
+        } else {
+          cameraConfig = { facingMode: { ideal: 'environment' } };
+        }
 
         await inst.start(
           cameraConfig,
@@ -92,6 +150,12 @@ export function scannerStore() {
             if (decodeFails % 60 === 0) console.debug('[QR] scanning... no decode yet');
           }
         );
+
+        // After permission is granted, camera labels usually become available. Refresh + choose best back camera once.
+        await this.refreshCameras();
+        if (!this.activeCameraId && this.cameras.length) {
+          this.activeCameraId = preferBackCameraId(this.cameras);
+        }
 
         this.scanning = true;
       } catch (e: any) {
@@ -169,6 +233,7 @@ export function scannerStore() {
         const res = await fetch('/api/v1/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ qr: code, locationId: this.locationId }),
         });
 
@@ -198,11 +263,6 @@ export function scannerStore() {
       this.scanAllowed = null;
       this.scanReason = '';
       this.startScan();
-    },
-
-    async simulateScan() {
-      const code = `CARWASH-4-${Date.now()}`;
-      await this.handleScanResult(code);
     },
   };
 }

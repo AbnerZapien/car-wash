@@ -103,7 +103,19 @@ templ Scanner(vm ScannerVM) {
 										Scanning...
 									</div>
 								</div>
-								<!-- Flashlight Button -->
+								
+									<!-- Switch Camera Button -->
+									<button
+										x-show="cameras && cameras.length > 1"
+										x-cloak
+										@click="cycleCamera()"
+										class="absolute top-6 left-6 flex min-w-[48px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 w-12 bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-colors"
+										title="Switch camera"
+									>
+										<span class="material-symbols-outlined text-2xl">cameraswitch</span>
+									</button>
+
+<!-- Flashlight Button -->
 								<button
 									@click="toggleFlash()"
 									class="absolute bottom-6 right-6 flex min-w-[48px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 w-12 bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-colors"
