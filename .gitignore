@@ -26,3 +26,5 @@ db/main.db
 Dockerfile.bak_*
 js/vite.config.ts
 db/test.db
+
+*.bak_*
