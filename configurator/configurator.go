@@ -147,3 +147,13 @@ func (c *Configurator) AddPlansAPI() *Configurator {
 	usersAdapter.NewPlansAPIService(c.v1)
 	return c
 }
+
+func (c *Configurator) AddAdminAPI() *Configurator {
+	db, err := usersAdapter.ConnectDB()
+	if err != nil {
+		panic(err)
+	}
+	admin := usersAdapter.NewAdminAPIService(c.v1).WithDB(db)
+	admin.RegisterRoutes()
+	return c
+}

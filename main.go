@@ -31,6 +31,7 @@ func main() {
 	config.AddMeAPI()
 	config.AddPublicWeb()
 	config.AddPlansAPI()
+	config.AddAdminAPI()
 	config.AddUserWeb()
 	config.Start()
 }
