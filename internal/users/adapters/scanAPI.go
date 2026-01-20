@@ -132,9 +132,11 @@ func parseUserIDFromQR(qr string) (int, string) {
 func insertWashEvent(db *sqlx.DB, userID int, locationID, result, rawQR, reason string) error {
 	id := uuid.NewString()
 	scannedAt := time.Now().UTC().Format(time.RFC3339)
-	_, err := db.Exec(`
+
+	q := db.Rebind(`
 		INSERT INTO wash_events (id, user_id, location_id, scanned_at, result, raw_qr, reason)
 		VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, NULLIF(?, ''))
-	`, id, userID, locationID, scannedAt, result, rawQR, reason)
+	`)
+	_, err := db.Exec(q, id, userID, locationID, scannedAt, result, rawQR, reason)
 	return err
 }
