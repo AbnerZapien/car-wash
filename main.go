@@ -30,6 +30,7 @@ func main() {
 	config.AddScanAPI()
 	config.AddMeAPI()
 	config.AddPublicWeb()
+	config.AddPlansAPI()
 	config.AddUserWeb()
 	config.Start()
 }

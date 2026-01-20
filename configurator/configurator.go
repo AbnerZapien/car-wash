@@ -142,3 +142,8 @@ func (c *Configurator) AddMeAPI() *Configurator {
 	meAPI.RegisterRoutes()
 	return c
 }
+
+func (c *Configurator) AddPlansAPI() *Configurator {
+	usersAdapter.NewPlansAPIService(c.v1)
+	return c
+}
