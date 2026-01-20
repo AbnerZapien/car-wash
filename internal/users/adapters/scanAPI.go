@@ -72,7 +72,11 @@ func (s *ScanAPIService) Scan(c echo.Context) error {
 	userID, parseReason := parseUserIDFromQR(req.QR)
 	if userID == 0 {
 		// log denied event
-		_ = insertWashEvent(s.db, 0, req.LocationID, "denied", req.QR, parseReason)
+		if err := insertWashEvent(s.db, 0, req.LocationID, "denied", req.QR, parseReason); err != nil {
+			// Do not allow success if we failed to record the event
+			return c.JSON(500, map[string]any{"allowed": false, "reason": "Failed to record wash event"})
+		}
+
 		return c.JSON(http.StatusBadRequest, ScanResponse{Allowed: false, Reason: parseReason})
 	}
 
