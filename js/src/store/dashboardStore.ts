@@ -1,14 +1,18 @@
 import { storage } from '../adapters/localStorage';
 import { STORAGE_KEYS } from '../ports/storage';
-import { SEED_SUBSCRIPTIONS, SEED_WASH_HISTORY } from '../adapters/mockData';
 import type { User } from '../core/models/user';
-import type { Subscription } from '../core/models/subscription';
 import type { WashHistory } from '../core/models/wash';
 
 interface AuthStorageData {
   isAuthenticated: boolean;
-  currentUser: User | null;
+  currentUser: any | null;
   token: string | null;
+}
+
+function authHeaders() {
+  const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
+  const token = auth?.token;
+  return token ? { 'X-Session-Token': token } : {};
 }
 
 type MeResponse = {
@@ -20,15 +24,40 @@ type MeResponse = {
   avatarUrl: string;
 };
 
+type SubResponse = {
+  active: boolean;
+  subscription: null | {
+    planId: string;
+    planName: string;
+    priceCents: number;
+    featuresJson: string;
+    status: string;
+    nextBillingDate: string;
+  };
+};
+
+type HistoryItem = {
+  id: string;
+  userId: number;
+  locationId: string;
+  locationName: string;
+  locationAddress: string;
+  scannedAt: string;
+  result: string; // allowed|denied
+  reason: string;
+  rawQr: string;
+};
+
 export function dashboardStore() {
   return {
     accessCode: '' as string,
     accessQrUrl: '' as string,
 
     user: null as User | null,
-    subscription: null as Subscription | null,
+    subscription: null as any, // keep template getters working
     washHistory: [] as WashHistory[],
     loading: true,
+    error: null as string | null,
 
     get planName(): string {
       return this.subscription?.plan?.name || 'No Plan';
@@ -59,54 +88,83 @@ export function dashboardStore() {
 
     async loadDashboard() {
       this.loading = true;
+      this.error = null;
 
-      // 1) Load from local storage (fast UI)
-      const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
-      if (auth?.currentUser) {
-        this.user = auth.currentUser;
-      }
-
-      // 2) Refresh from backend (authoritative numeric id)
       try {
-        const res = await fetch('/api/v1/me', { credentials: 'include' });
-        if (res.ok) {
-          const me = (await res.json()) as MeResponse;
+        const headers = authHeaders();
 
-          // Normalize into UI User shape
-          this.user = {
-            id: String(me.id),
-            username: me.username,
-            email: me.email,
-            firstName: me.firstName,
-            lastName: me.lastName,
-            avatarUrl: me.avatarUrl,
-            createdAt: new Date(),
-            role: 'user',
-          } as any;
+        // 1) User
+        const meRes = await fetch('/api/v1/me', { headers, credentials: 'include' });
+        if (meRes.status === 401) throw new Error('Please sign in again.');
+        if (!meRes.ok) throw new Error('Failed to load profile');
+        const me = (await meRes.json()) as MeResponse;
 
-          // Keep local storage in sync (so other pages that still read it behave)
-          if (auth) {
-            auth.currentUser = this.user;
-            storage.set(STORAGE_KEYS.AUTH, auth);
-          }
+        this.user = {
+          id: String(me.id),
+          username: me.username,
+          email: me.email,
+          firstName: me.firstName,
+          lastName: me.lastName,
+          avatarUrl: me.avatarUrl,
+          createdAt: new Date(),
+          role: 'user',
+        } as any;
+
+        // 2) Subscription (for the plan card)
+        const subRes = await fetch('/api/v1/me/subscription', { headers, credentials: 'include' });
+        const subJson = (await subRes.json()) as SubResponse;
+
+        if (subJson.subscription) {
+          let features: string[] = [];
+          try {
+            features = JSON.parse(subJson.subscription.featuresJson || '[]');
+          } catch {}
+
+          this.subscription = {
+            status: subJson.subscription.status,
+            nextBillingDate: subJson.subscription.nextBillingDate,
+            plan: {
+              name: subJson.subscription.planName,
+              price: (subJson.subscription.priceCents || 0) / 100,
+              features,
+            },
+          };
+        } else {
+          this.subscription = null;
         }
-      } catch {
-        // ignore; fall back to storage user
+
+        // 3) History -> map wash_events into the old WashHistory UI shape
+        const histRes = await fetch('/api/v1/me/history', { headers, credentials: 'include' });
+        if (!histRes.ok) throw new Error('Failed to load history');
+        const data = await histRes.json();
+        const items: HistoryItem[] = data.items || [];
+
+        this.washHistory = items.map((e) => {
+          const d = new Date(e.scannedAt);
+          const washType =
+            e.result === 'allowed'
+              ? 'Access Granted'
+              : `Access Denied${e.reason ? ` — ${e.reason}` : ''}`;
+
+          return {
+            id: e.id,
+            washType,
+            location: {
+              name: e.locationName || e.locationId || 'Unknown location',
+              address: e.locationAddress || '',
+            },
+            date: d,
+            time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          } as any;
+        });
+
+        // 4) QR for dashboard card
+        this.generateAccessCode();
+      } catch (e: any) {
+        this.error = e?.message ?? 'Failed to load dashboard';
+      } finally {
+        this.loading = false;
       }
-
-      // 3) Generate access QR from numeric id
-      this.generateAccessCode();
-
-      // 4) Keep existing mock subscription/history for now
-      if (this.user?.id) {
-        this.subscription =
-          SEED_SUBSCRIPTIONS.find((s: any) => String(s.userId) === String(this.user?.id)) ||
-          SEED_SUBSCRIPTIONS[0];
-
-        this.washHistory = SEED_WASH_HISTORY.filter((w: any) => String(w.userId) === String(this.user?.id));
-      }
-
-      this.loading = false;
     },
 
     generateAccessCode() {
