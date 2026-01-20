@@ -9,18 +9,7 @@ type PrivacyVM struct {
 templ Privacy(vm PrivacyVM) {
 	@templates.Index(templates.IndexVM{Title: "Privacy Policy - Hedgestone Carwash", Error: vm.Error}) {
 		<div class="bg-base-200 min-h-screen">
-			<div class="bg-white shadow-sm">
-				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-					<a href="/" class="text-xl font-bold text-gray-900">Hedgestone Carwash</a>
-					<div class="hidden md:flex items-center gap-6">
-						<a class="text-accent hover:text-primary font-medium" href="/about">About</a>
-						<a class="text-accent hover:text-primary font-medium" href="/contact">Contact</a>
-						<a class="text-base text-gray-500 hover:text-gray-900" href="/privacy">Privacy</a>
-						<a class="text-base text-gray-500 hover:text-gray-900" href="/terms">Terms</a>
-						<a class="text-base text-gray-500 hover:text-gray-900" href="/cookies">Cookies</a>
-					</div>
-				</div>
-			</div>
+			@PublicNavbar()
 
 			<div class="bg-white">
 				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -56,12 +45,7 @@ templ Privacy(vm PrivacyVM) {
 					</div>
 				</div>
 			</div>
-
-			<footer class="bg-white border-t border-gray-200">
-				<div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-					<p class="text-sm text-gray-500">&copy; 2024 Hedgestone Carwash. All rights reserved.</p>
-				</div>
-			</footer>
+			@PublicFooter()
 		</div>
 	}
 }
