@@ -1,6 +1,18 @@
 import { storage } from '../adapters/localStorage';
 import { STORAGE_KEYS } from '../ports/storage';
 
+interface AuthStorageData {
+  isAuthenticated: boolean;
+  currentUser: any | null;
+  token: string | null;
+}
+
+function authHeaders() {
+  const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
+  const token = auth?.token;
+  return token ? { 'X-Session-Token': token } : {};
+}
+
 type MeResponse = {
   id: number;
   username: string;
@@ -22,23 +34,15 @@ type SubscriptionResponse = {
   };
 };
 
-interface AuthStorageData {
-  isAuthenticated: boolean;
-  currentUser: any | null;
-  token: string | null;
-}
-
-function authHeaders() {
-  const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
-  const token = auth?.token;
-  return token ? { 'X-Session-Token': token } : {};
-}
-
 export function accountStore() {
   return {
-    me: null as MeResponse | null,
-    subscription: null as SubscriptionResponse['subscription'] | null,
+    // ✅ Template expects "user"
+    user: null as any,
 
+    // ✅ Template expects "subscription.plan.*"
+    subscription: null as any,
+
+    // Form state
     firstName: '',
     lastName: '',
     email: '',
@@ -65,14 +69,43 @@ export function accountStore() {
         if (!meRes.ok) throw new Error('Failed to load profile');
 
         const me = (await meRes.json()) as MeResponse;
-        this.me = me;
 
-        const sub = (await subRes.json()) as SubscriptionResponse;
-        this.subscription = sub.subscription;
+        // Normalize into the template’s expected "user" shape
+        this.user = {
+          id: String(me.id),
+          username: me.username,
+          email: me.email,
+          firstName: me.firstName,
+          lastName: me.lastName,
+          avatarUrl: me.avatarUrl,
+        };
 
-        this.firstName = me.firstName || '';
-        this.lastName = me.lastName || '';
-        this.email = me.email || '';
+        // Subscription normalization
+        const subJson = (await subRes.json()) as SubscriptionResponse;
+        if (subJson.subscription) {
+          let features: string[] = [];
+          try {
+            features = JSON.parse(subJson.subscription.featuresJson || '[]');
+          } catch {}
+
+          this.subscription = {
+            status: subJson.subscription.status,
+            nextBillingDate: subJson.subscription.nextBillingDate,
+            plan: {
+              name: subJson.subscription.planName,
+              // Template expects a number-like value; we’ll provide dollars
+              price: (subJson.subscription.priceCents || 0) / 100,
+              features,
+            },
+          };
+        } else {
+          this.subscription = null;
+        }
+
+        // Fill form from user
+        this.firstName = this.user.firstName || '';
+        this.lastName = this.user.lastName || '';
+        this.email = this.user.email || '';
         this.avatarPreview = '';
       } catch (e: any) {
         this.error = e?.message ?? 'Failed to load account';
@@ -85,9 +118,9 @@ export function accountStore() {
       this.saved = false;
       this.error = null;
       this.avatarPreview = '';
-      this.firstName = this.me?.firstName || '';
-      this.lastName = this.me?.lastName || '';
-      this.email = this.me?.email || '';
+      this.firstName = this.user?.firstName || '';
+      this.lastName = this.user?.lastName || '';
+      this.email = this.user?.email || '';
     },
 
     onAvatarChange(e: Event) {
@@ -137,11 +170,16 @@ export function accountStore() {
         if (!res.ok) throw new Error('Save failed');
 
         const me = (await res.json()) as MeResponse;
-        this.me = me;
+
+        this.user.email = me.email;
+        this.user.firstName = me.firstName;
+        this.user.lastName = me.lastName;
+        this.user.avatarUrl = me.avatarUrl;
+
         this.avatarPreview = '';
         this.saved = true;
 
-        // Keep local auth storage user updated for existing UI
+        // Keep local storage user updated if present
         const auth = storage.get<AuthStorageData>(STORAGE_KEYS.AUTH);
         if (auth?.currentUser) {
           auth.currentUser.email = me.email;
