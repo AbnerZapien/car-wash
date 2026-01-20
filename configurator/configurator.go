@@ -123,7 +123,7 @@ func (c *Configurator) Start() {
 }
 
 func (c *Configurator) AddScanAPI() *Configurator {
-	db, err := usersAdapter.ConnectSQLite()
+	db, err := usersAdapter.ConnectDB()
 	if err != nil {
 		panic(err)
 	}
@@ -134,7 +134,7 @@ func (c *Configurator) AddScanAPI() *Configurator {
 }
 
 func (c *Configurator) AddMeAPI() *Configurator {
-	db, err := usersAdapter.ConnectSQLite()
+	db, err := usersAdapter.ConnectDB()
 	if err != nil {
 		panic(err)
 	}

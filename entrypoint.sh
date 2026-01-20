@@ -1,6 +1,15 @@
 #!/bin/sh
 set -eu
 
+# If DATABASE_URL is set, run with Postgres and skip sqlite init/seed.
+if [ -n "${DATABASE_URL:-}" ]; then
+  export GO_PORT="${PORT:-10000}"
+  export ENV="${ENV:-production}"
+  echo "[entrypoint] DATABASE_URL set; starting with Postgres"
+  exec ./server
+fi
+
+
 DB_PATH="${DB_PATH:-/app/db/main.db}"
 DB_DIR="$(dirname "$DB_PATH")"
 

@@ -66,7 +66,7 @@ func (m *MeAPIService) GetMe(c echo.Context) error {
 	}
 
 	var u meRow
-	if err := m.db.Get(&u, `SELECT id, username, email, first_name, last_name, avatar_url FROM users WHERE id = ? LIMIT 1`, uid); err != nil {
+	if err := m.db.Get(&u, m.db.Rebind(`SELECT id, username, email, first_name, last_name, avatar_url FROM users WHERE id = ? LIMIT 1`), uid); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, u)
@@ -110,7 +110,7 @@ func (m *MeAPIService) UpdateMe(c echo.Context) error {
 	}
 
 	var u meRow
-	_ = m.db.Get(&u, `SELECT id, username, email, first_name, last_name, avatar_url FROM users WHERE id = ? LIMIT 1`, uid)
+	_ = m.db.Get(&u, m.db.Rebind(`SELECT id, username, email, first_name, last_name, avatar_url FROM users WHERE id = ? LIMIT 1`), uid)
 	return c.JSON(http.StatusOK, u)
 }
 
@@ -125,7 +125,7 @@ func (m *MeAPIService) GetMySubscription(c echo.Context) error {
 	}
 
 	var out subscriptionOut
-	err := m.db.Get(&out, `
+	err := m.db.Get(&out, m.db.Rebind(`
 		SELECT s.plan_id,
 		       p.name as plan_name,
 		       p.price_cents,
@@ -136,7 +136,7 @@ func (m *MeAPIService) GetMySubscription(c echo.Context) error {
 		JOIN plans p ON p.id = s.plan_id
 		WHERE s.user_id = ? AND s.status = 'active'
 		LIMIT 1
-	`, uid)
+	`), uid)
 
 	if err != nil {
 		return c.JSON(http.StatusOK, map[string]any{"active": false, "subscription": nil})
@@ -193,7 +193,7 @@ func (m *MeAPIService) authedUserID(c echo.Context) (int, bool) {
 		UserID int `db:"user_id"`
 	}
 	var s sessRow
-	if err := m.db.Get(&s, `SELECT user_id FROM sessions WHERE token = ? LIMIT 1`, token); err != nil {
+	if err := m.db.Get(&s, m.db.Rebind(`SELECT user_id FROM sessions WHERE token = ? LIMIT 1`), token); err != nil {
 		return 0, false
 	}
 	return s.UserID, true
@@ -230,22 +230,22 @@ func (m *MeAPIService) GetMyHistory(c echo.Context) error {
 
 	items := []historyItem{}
 	// Return the most recent 100 events for now
-	err := m.db.Select(&items, `
+	err := m.db.Select(&items, m.db.Rebind(`
 		SELECT e.id,
 		       e.user_id,
-		       IFNULL(e.location_id,'') as location_id,
-		       IFNULL(l.name,'') as location_name,
-		       IFNULL(l.address,'') as location_address,
+		       COALESCE(e.location_id,'') as location_id,
+		       COALESCE(l.name,'') as location_name,
+		       COALESCE(l.address,'') as location_address,
 		       e.scanned_at,
 		       e.result,
-		       IFNULL(e.reason,'') as reason,
+		       COALESCE(e.reason,'') as reason,
 		       e.raw_qr
 		FROM wash_events e
 		LEFT JOIN locations l ON l.id = e.location_id
 		WHERE e.user_id = ?
 		ORDER BY e.scanned_at DESC
 		LIMIT 100
-	`, uid)
+	`), uid)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

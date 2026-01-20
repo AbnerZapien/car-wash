@@ -11,7 +11,7 @@ type UsersStore[Item any] struct {
 }
 
 func NewDB[Item any]() *UsersStore[Item] {
-	db, err := ConnectSQLite()
+	db, err := ConnectDB()
 	if err != nil {
 		log.Fatal(err)
 	}

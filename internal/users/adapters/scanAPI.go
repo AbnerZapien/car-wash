@@ -78,12 +78,12 @@ func (s *ScanAPIService) Scan(c echo.Context) error {
 
 	// Validate active subscription
 	var sub subscriptionRow
-	err := s.db.Get(&sub, `
+	err := s.db.Get(&sub, s.db.Rebind(`
 		SELECT id, user_id, plan_id, status
 		FROM subscriptions
 		WHERE user_id = ? AND status = 'active'
 		LIMIT 1
-	`, userID)
+	`), userID)
 
 	if err != nil {
 		reason := "No active subscription"
@@ -93,7 +93,7 @@ func (s *ScanAPIService) Scan(c echo.Context) error {
 
 	// Lookup plan
 	var plan planRow
-	_ = s.db.Get(&plan, `SELECT id, name FROM plans WHERE id = ? LIMIT 1`, sub.PlanID)
+	_ = s.db.Get(&plan, s.db.Rebind(`SELECT id, name FROM plans WHERE id = ? LIMIT 1`), sub.PlanID)
 
 	_ = insertWashEvent(s.db, userID, req.LocationID, "allowed", req.QR, "")
 

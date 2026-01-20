@@ -20,14 +20,14 @@ func resolveUsername(identifier string) string {
 	if !strings.Contains(identifier, "@") {
 		return identifier
 	}
-	db, err := ConnectSQLite()
+	db, err := ConnectDB()
 	if err != nil {
 		return identifier
 	}
 	defer db.Close()
 
 	var uname string
-	if err := db.Get(&uname, `SELECT username FROM users WHERE email = ? LIMIT 1`, identifier); err != nil {
+	if err := db.Get(&uname, db.Rebind(`SELECT username FROM users WHERE email = ? LIMIT 1`), identifier); err != nil {
 		return identifier
 	}
 	if uname == "" {
@@ -38,7 +38,7 @@ func resolveUsername(identifier string) string {
 
 func setProfileFields(userID string, email, firstName, lastName, avatarURL string) {
 	// Best-effort update; ignore errors for now.
-	db, err := ConnectSQLite()
+	db, err := ConnectDB()
 	if err != nil {
 		return
 	}
@@ -122,7 +122,7 @@ func (uas *UsersAPIService) SignIn(c echo.Context) error {
 
 	// Fallback for demo seeds: support plaintext passwords (and bcrypt if present)
 	if err != nil {
-		db, derr := ConnectSQLite()
+		db, derr := ConnectDB()
 		if derr == nil {
 			defer db.Close()
 
@@ -136,7 +136,7 @@ func (uas *UsersAPIService) SignIn(c echo.Context) error {
 				AvatarURL string `db:"avatar_url"`
 			}
 
-			qerr := db.Get(&row, `SELECT id, username, password, email, first_name, last_name, avatar_url FROM users WHERE username = ? LIMIT 1`, uname)
+			qerr := db.Get(&row, db.Rebind(`SELECT id, username, password, email, first_name, last_name, avatar_url FROM users WHERE username = ? LIMIT 1`), uname)
 			if qerr == nil {
 				ok := false
 				if strings.HasPrefix(row.Password, "$2a$") || strings.HasPrefix(row.Password, "$2b$") || strings.HasPrefix(row.Password, "$2y$") {

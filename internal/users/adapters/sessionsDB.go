@@ -11,7 +11,7 @@ type SessionsStore[Item any] struct {
 }
 
 func NewSessionStore[Item any]() *SessionsStore[Item] {
-	db, err := ConnectSQLite()
+	db, err := ConnectDB()
 	if err != nil {
 		log.Fatal(err)
 	}
