@@ -198,7 +198,7 @@ export function authStore() {
         this.isAuthenticated = true;
         this.persist();
 
-        window.location.href = '/dashboard';
+        window.location.href = '/choose-plan';
       } catch (e: any) {
         this.error = e?.message ?? 'Signup failed';
       } finally {

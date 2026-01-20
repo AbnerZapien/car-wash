@@ -6,6 +6,7 @@ import { scannerStore } from './scannerStore';
 import { historyStore } from './historyStore';
 import { accountStore } from './accountStore';
 import { adminStore } from './adminStore';
+import { choosePlanStore } from './choosePlanStore';
 
 export function registerStores() {
   console.log('Registering Alpine stores...');
@@ -16,6 +17,7 @@ export function registerStores() {
   Alpine.data('historyStore', historyStore);
   Alpine.data('accountStore', accountStore);
   Alpine.data('adminStore', adminStore);
+  Alpine.data('choosePlanStore', choosePlanStore);
   console.log('Alpine stores registered');
 }
 
