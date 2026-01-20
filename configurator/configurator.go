@@ -95,9 +95,24 @@ func (c *Configurator) AddUserWeb() *Configurator {
 }
 
 func (c *Configurator) AddPublicWeb() *Configurator {
-	// Public landing page
+	// Public pages (must be registered on c.Echo, not on an auth-protected group)
 	c.Echo.GET("/", func(ctx echo.Context) error {
 		return web.Render(ctx, views.Index(views.IndexVM{}), 200)
+	})
+	c.Echo.GET("/about", func(ctx echo.Context) error {
+		return web.Render(ctx, views.About(views.AboutVM{}), 200)
+	})
+	c.Echo.GET("/contact", func(ctx echo.Context) error {
+		return web.Render(ctx, views.Contact(views.ContactVM{}), 200)
+	})
+	c.Echo.GET("/terms", func(ctx echo.Context) error {
+		return web.Render(ctx, views.Terms(views.TermsVM{}), 200)
+	})
+	c.Echo.GET("/privacy", func(ctx echo.Context) error {
+		return web.Render(ctx, views.Privacy(views.PrivacyVM{}), 200)
+	})
+	c.Echo.GET("/cookies", func(ctx echo.Context) error {
+		return web.Render(ctx, views.Cookies(views.CookiesVM{}), 200)
 	})
 	return c
 }
