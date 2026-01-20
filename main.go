@@ -29,6 +29,7 @@ func main() {
 	config.AddUserAPI()
 	config.AddScanAPI()
 	config.AddMeAPI()
+	config.AddPublicWeb()
 	config.AddUserWeb()
 	config.Start()
 }

@@ -1,6 +1,8 @@
 package configurator
 
 import (
+	web "github.com/edlingao/hexago/common/delivery/web"
+	views "github.com/edlingao/hexago/web/views"
 	"os"
 
 	auth "github.com/edlingao/go-auth/auth/core"
@@ -89,6 +91,14 @@ func (c *Configurator) AddUserWeb() *Configurator {
 	)
 	c.UserWebPage = *usersWebPage
 
+	return c
+}
+
+func (c *Configurator) AddPublicWeb() *Configurator {
+	// Public landing page
+	c.Echo.GET("/", func(ctx echo.Context) error {
+		return web.Render(ctx, views.Index(views.IndexVM{}), 200)
+	})
 	return c
 }
 
