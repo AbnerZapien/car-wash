@@ -1,103 +1,117 @@
-import {
-  SEED_ADMIN_STATS,
-  SEED_MEMBERS,
-  SEED_ADMIN_LOCATIONS,
-  SEED_ACTIVE_MEMBERS_CHART,
-  SEED_RETENTION_CHART,
-} from '../adapters/mockData';
-import type { AdminStats, Member, AdminLocation, ChartDataPoint } from '../core/models/admin';
-
-type NavItem = 'dashboard' | 'members' | 'usage' | 'attrition' | 'attendants' | 'promotions' | 'revenue' | 'income' | 'widget';
-type DateRange = 'today' | 'week' | 'month' | 'year';
+type AdminMember = {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+  planId: string;
+  planName: string;
+  subStatus: string;
+  nextBillingDate: string;
+  washCount: number;
+};
 
 export function adminStore() {
   return {
-    stats: null as AdminStats | null,
-    members: [] as Member[],
-    locations: SEED_ADMIN_LOCATIONS as AdminLocation[],
-    selectedLocation: 'all',
-    dateRange: 'week' as DateRange,
-    searchQuery: '',
-    activeNav: 'dashboard' as NavItem,
-    loading: true,
+    // --- UI state expected by portal.templ ---
     sidebarOpen: false,
+    activeNav: 'dashboard',
+    searchQuery: '',
+    locationName: 'All Locations',
+    dateRangeLabel: 'Last 30 days',
 
-    activeMembersData: [] as ChartDataPoint[],
-    retentionData: [] as ChartDataPoint[],
+    stats: {
+      activeMemberCount: 0,
+      memberGrowth: 0,
+      averageUsageRate: 0,
+      monthlyProjection: 0,
+    } as any,
 
-    get filteredMembers(): Member[] {
-      if (!this.searchQuery) return this.members;
-      const q = this.searchQuery.toLowerCase();
-      return this.members.filter(
-        (m) =>
-          m.name.toLowerCase().includes(q) ||
-          m.email.toLowerCase().includes(q) ||
-          m.plan.toLowerCase().includes(q)
+    // --- DB-backed data ---
+    members: [] as AdminMember[],
+    filteredMembers: [] as AdminMember[],
+    loading: false,
+    error: null as string | null,
+
+    async init() {
+      await this.refresh();
+      this.computeStats();
+    },
+
+    navigate(id: string) {
+      this.activeNav = id;
+    },
+
+    search(q: string) {
+      this.searchQuery = q;
+      const s = (q || '').toLowerCase().trim();
+      if (!s) {
+        this.filteredMembers = this.members;
+        return;
+      }
+      this.filteredMembers = this.members.filter((m) =>
+        String(m.id).includes(s) ||
+        (m.username || '').toLowerCase().includes(s) ||
+        (m.email || '').toLowerCase().includes(s) ||
+        (m.firstName || '').toLowerCase().includes(s) ||
+        (m.lastName || '').toLowerCase().includes(s) ||
+        (m.planName || '').toLowerCase().includes(s)
       );
     },
 
-    get locationName(): string {
-      const loc = this.locations.find((l) => l.id === this.selectedLocation);
-      return loc?.name || 'All Locations';
+    formatPercentage(v: number) {
+      const n = Number(v || 0);
+      return `${n.toFixed(1)}%`;
     },
 
-    get dateRangeLabel(): string {
-      const labels: Record<DateRange, string> = {
-        today: 'Today',
-        week: 'This Week',
-        month: 'This Month',
-        year: 'This Year',
-      };
-      return labels[this.dateRange];
+    formatCurrency(v: number) {
+      const n = Number(v || 0);
+      return `$${n.toFixed(2)}`;
     },
 
-    init() {
-      console.log('adminStore init called');
-      this.loadStats();
-      this.loadMembers();
-    },
-
-    loadStats() {
+    async refresh() {
       this.loading = true;
-      setTimeout(() => {
-        this.stats = { ...SEED_ADMIN_STATS };
-        this.activeMembersData = [...SEED_ACTIVE_MEMBERS_CHART];
-        this.retentionData = [...SEED_RETENTION_CHART];
+      this.error = null;
+      try {
+        const res = await fetch('/api/v1/admin/members', { credentials: 'include' });
+        if (res.status === 401) throw new Error('Please sign in as admin.');
+        if (res.status === 403) throw new Error('Forbidden (admin only).');
+        if (!res.ok) throw new Error('Failed to load members');
+        const data = await res.json();
+        this.members = (data.members || []) as AdminMember[];
+        this.filteredMembers = this.members;
+      } catch (e: any) {
+        this.error = e?.message ?? 'Failed to load members';
+      } finally {
         this.loading = false;
-      }, 300);
+      }
     },
 
-    loadMembers() {
-      this.members = [...SEED_MEMBERS];
+    computeStats() {
+      const active = this.members.filter((m) => m.subStatus === 'active').length;
+      this.stats.activeMemberCount = active;
+
+      // Placeholders (you can compute later from wash_events)
+      this.stats.memberGrowth = 0;
+      this.stats.averageUsageRate = 0;
+      this.stats.monthlyProjection = 0;
     },
 
-    changeLocation(locationId: string) {
-      this.selectedLocation = locationId;
-      this.loadStats();
-    },
-
-    changeDateRange(range: DateRange) {
-      this.dateRange = range;
-      this.loadStats();
-    },
-
-    search(query: string) {
-      this.searchQuery = query;
-    },
-
-    navigate(section: NavItem) {
-      this.activeNav = section;
-    },
-
-    formatCurrency(value: number): string {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(value);
-    },
-
-    formatPercentage(value: number): string {
-      return `${value > 0 ? '+' : ''}${value}%`;
+    async deleteUser(id: number) {
+      if (!confirm('Delete this user? This deletes sessions, subscriptions, and wash events.')) return;
+      try {
+        const res = await fetch(`/api/v1/admin/users/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Delete failed');
+        await this.refresh();
+        this.computeStats();
+      } catch (e: any) {
+        alert(e?.message ?? 'Delete failed');
+      }
     },
   };
 }
