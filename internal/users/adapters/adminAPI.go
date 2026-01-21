@@ -63,15 +63,14 @@ func (a *AdminAPIService) requireAdmin(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		}
 
-		var uname string
-		q2 := a.db.Rebind(`SELECT username FROM users WHERE id = ? LIMIT 1`)
-		if err := a.db.Get(&uname, q2, uid); err != nil {
+		var role string
+		q2 := a.db.Rebind(`SELECT role FROM users WHERE id = ? LIMIT 1`)
+		if err := a.db.Get(&role, q2, uid); err != nil {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		}
-		if uname != "admin" {
+		if role != "admin" {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "forbidden"})
 		}
-
 		return next(c)
 	}
 }
