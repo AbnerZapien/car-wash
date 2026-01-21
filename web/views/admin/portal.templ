@@ -29,6 +29,18 @@ templ Portal(vm PortalVM) {
 			}
 		</style>
 		<div class="flex h-screen bg-slate-50" x-data="adminStore" x-init="init()">
+				<!-- Toast / Snackbar -->
+				<div x-show="toastOpen" x-cloak x-transition class="fixed bottom-6 right-6 z-[9999]">
+					<div class="rounded-lg shadow-lg px-4 py-3 text-white flex items-start gap-3"
+						:class="toastType === 'error' ? 'bg-red-600' : (toastType === 'success' ? 'bg-green-600' : 'bg-slate-800')">
+						<span class="material-icons-outlined text-lg" x-text="toastType === 'error' ? 'error' : (toastType === 'success' ? 'check_circle' : 'info')"></span>
+						<div class="min-w-[220px]">
+							<p class="font-medium" x-text="toastMessage"></p>
+						</div>
+						<button class="opacity-90 hover:opacity-100" @click="toastOpen=false" aria-label="Close">✕</button>
+					</div>
+				</div>
+
 			<!-- Mobile Backdrop -->
 			<div
 				x-show="sidebarOpen"
