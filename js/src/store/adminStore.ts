@@ -28,6 +28,21 @@ export function adminStore() {
     searchQuery: '',
     locationName: 'All Locations',
     dateRangeLabel: 'Last 30 days',
+    
+    // Toast/snackbar
+    toastOpen: false,
+    toastMessage: '' as string,
+    toastType: 'info' as 'info' | 'success' | 'error',
+    toastTimer: null as any,
+
+    toast(message: string, type: 'info' | 'success' | 'error' = 'info') {
+      this.toastMessage = message;
+      this.toastType = type;
+      this.toastOpen = true;
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(() => { this.toastOpen = false; }, 3000);
+    },
+
 
     stats: {
       activeMemberCount: 0,
@@ -59,7 +74,9 @@ export function adminStore() {
     async init() {
       await this.refresh();
       await this.refreshPlans();
+        this.toast('Plan deleted', 'success');
       this.computeStats();
+        this.toast('User deleted', 'success');
     },
 
     navigate(id: string) {
@@ -138,7 +155,7 @@ export function adminStore() {
         await this.refresh();
         this.computeStats();
       } catch (e: any) {
-        alert(e?.message ?? 'Delete failed');
+        this.toast(e?.message ?? 'Delete failed', 'error');
       }
     },
 
@@ -253,7 +270,7 @@ export function adminStore() {
         if (!res.ok) throw new Error(j?.error || 'Delete failed');
         await this.refreshPlans();
       } catch (e: any) {
-        alert(e?.message ?? 'Delete failed');
+        this.toast(e?.message ?? 'Delete failed', 'error');
       }
     },
   };
