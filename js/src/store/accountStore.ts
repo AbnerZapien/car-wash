@@ -44,12 +44,26 @@ export function accountStore() {
         this.avatarUrl = me.avatarUrl || '';
 
         const subJson = await subRes.json().catch(() => null);
-        this.subscription = subJson?.subscription
-          ? {
-              ...subJson.subscription,
-              plan: { price: ((subJson.subscription.priceCents || 0) / 100).toFixed(2) },
-            }
-          : null;
+        // Normalize subscription to match template expectations
+        const sub = subJson?.subscription || null;
+        if (sub) {
+          let features: string[] = [];
+          try { features = JSON.parse(sub.featuresJson || '[]'); } catch {}
+          const price = ((sub.priceCents || 0) / 100).toFixed(2);
+
+          this.subscription = {
+            ...sub,
+            features,
+            plan: {
+              id: sub.planId,
+              name: sub.planName,
+              price,
+              features,
+            },
+          };
+        } else {
+          this.subscription = null;
+        }
       } catch (e: any) {
         this.error = e?.message ?? 'Failed to load account';
       } finally {
