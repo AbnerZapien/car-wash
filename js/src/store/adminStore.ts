@@ -75,7 +75,24 @@ export function adminStore() {
       await this.refresh();
       await this.refreshPlans();
         this.toast('Plan deleted', 'success');
-      this.computeStats();
+      this.
+    async refreshStats(days: number = 30) {
+      try {
+        const res = await fetch(`/api/v1/admin/stats?days=${days}`, { credentials: 'include' });
+        const j = await res.json().catch(() => null);
+        if (!res.ok) return;
+
+        this.stats = {
+          ...this.stats,
+          activeMemberCount: j?.activeMemberCount ?? this.stats.activeMemberCount,
+          averageUsageRate: j?.averageUsageRate ?? this.stats.averageUsageRate,
+          monthlyProjection: j?.monthlyProjection ?? this.stats.monthlyProjection,
+        };
+        this.dateRangeLabel = `Last ${j?.days || days} days`;
+      } catch {}
+    }
+
+computeStats();
         this.toast('User deleted', 'success');
     },
 
