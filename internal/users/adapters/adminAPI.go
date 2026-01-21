@@ -31,6 +31,7 @@ func (a *AdminAPIService) RegisterRoutes() {
 	g.POST("/plans", a.CreatePlan)
 	g.PUT("/plans/:id", a.UpdatePlan)
 	g.DELETE("/plans/:id", a.DeletePlan)
+	g.GET("/stats", a.GetStats)
 }
 
 // Admin rule: user role must be "admin"
@@ -250,4 +251,61 @@ func (a *AdminAPIService) DeletePlan(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, map[string]any{"ok": true})
+}
+
+type AdminStats struct {
+	ActiveMemberCount int     `json:"activeMemberCount"`
+	ScansLastNDays    int     `json:"scansLastNDays"`
+	AverageUsageRate  float64 `json:"averageUsageRate"`
+	MonthlyProjection float64 `json:"monthlyProjection"`
+	Days              int     `json:"days"`
+}
+
+func (a *AdminAPIService) GetStats(c echo.Context) error {
+	days := 30
+	if ds := strings.TrimSpace(c.QueryParam("days")); ds != "" {
+		if v, err := strconv.Atoi(ds); err == nil && v > 0 && v <= 365 {
+			days = v
+		}
+	}
+
+	// Active members = active subscriptions
+	var active int
+	q1 := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
+	if err := a.db.Get(&active, q1); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Total scans in last N days
+	var scans int
+	q2 := a.db.Rebind(`SELECT COUNT(1) FROM wash_events WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')`)
+	if err := a.db.Get(&scans, q2, days); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	avg := 0.0
+	if active > 0 {
+		avg = float64(scans) / float64(active)
+	}
+
+	// Monthly projection: sum plan price cents for active subs
+	var cents int
+	q3 := a.db.Rebind(`
+		SELECT COALESCE(SUM(p.price_cents), 0)
+		FROM subscriptions s
+		JOIN plans p ON p.id = s.plan_id
+		WHERE s.status = 'active'
+	`)
+	if err := a.db.Get(&cents, q3); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	out := AdminStats{
+		ActiveMemberCount: active,
+		ScansLastNDays:    scans,
+		AverageUsageRate:  avg,
+		MonthlyProjection: float64(cents) / 100.0,
+		Days:              days,
+	}
+	return c.JSON(http.StatusOK, out)
 }
