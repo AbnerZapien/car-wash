@@ -2,7 +2,7 @@
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member';
 
--- Promote existing admin user (if present)
+-- Promote existing admin user
 UPDATE users
 SET role = 'admin'
 WHERE username = 'admin';
