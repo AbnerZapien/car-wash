@@ -100,14 +100,16 @@ func (m *MeAPIService) UpdateMe(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email"})
 	}
 
-	_, err := m.db.Exec(`
+	q := m.db.Rebind(`
 		UPDATE users
 		SET email = COALESCE(?, email),
 		    first_name = COALESCE(?, first_name),
 		    last_name = COALESCE(?, last_name),
 		    avatar_url = COALESCE(?, avatar_url)
 		WHERE id = ?
-	`, nullIfEmpty(req.Email), nullIfEmpty(req.FirstName), nullIfEmpty(req.LastName), nullIfEmpty(req.AvatarURL), uid)
+	`)
+
+	_, err := m.db.Exec(q, nullIfEmpty(req.Email), nullIfEmpty(req.FirstName), nullIfEmpty(req.LastName), nullIfEmpty(req.AvatarURL), uid)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "update failed"})
 	}
