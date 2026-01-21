@@ -33,7 +33,7 @@ func (a *AdminAPIService) RegisterRoutes() {
 	g.DELETE("/plans/:id", a.DeletePlan)
 }
 
-// Demo rule: admin user is username == "admin"
+// Admin rule: user role must be "admin"
 func (a *AdminAPIService) requireAdmin(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if a.db == nil {
