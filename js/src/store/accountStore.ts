@@ -1,19 +1,38 @@
+type MeResponse = {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+};
+
+type SubResponse = {
+  active: boolean;
+  subscription: null | {
+    planId: string;
+    planName: string;
+    priceCents: number;
+    featuresJson: string;
+    status: string;
+    nextBillingDate: string;
+  };
+};
+
 export function accountStore() {
   return {
     loading: false,
     saving: false,
     error: null as string | null,
-    success: null as string | null,
     saved: false,
 
     user: null as any,
     subscription: null as any,
-    avatarPreview: '' as string,
 
+    avatarPreview: '' as string,
     firstName: '',
     lastName: '',
     email: '',
-    avatarUrl: '',
 
     async init() {
       await this.load();
@@ -22,9 +41,6 @@ export function accountStore() {
     async load() {
       this.loading = true;
       this.error = null;
-      this.success = null;
-      this.saved = false;
-      this.saved = false;
       this.saved = false;
 
       try {
@@ -34,17 +50,17 @@ export function accountStore() {
         ]);
 
         if (meRes.status === 401) throw new Error('Please sign in again.');
+        if (!meRes.ok) throw new Error('Failed to load profile');
 
-        const me = await meRes.json();
+        const me = (await meRes.json()) as MeResponse;
+
         this.user = me;
-
         this.firstName = me.firstName || '';
         this.lastName = me.lastName || '';
         this.email = me.email || '';
-        this.avatarUrl = me.avatarUrl || '';
 
-        const subJson = await subRes.json().catch(() => null);
-        // Normalize subscription to match template expectations
+        const subJson = (await subRes.json().catch(() => null)) as SubResponse | null;
+
         const sub = subJson?.subscription || null;
         if (sub) {
           let features: string[] = [];
@@ -53,7 +69,6 @@ export function accountStore() {
 
           this.subscription = {
             ...sub,
-            features,
             plan: {
               id: sub.planId,
               name: sub.planName,
@@ -71,9 +86,11 @@ export function accountStore() {
       }
     },
 
-    // File input handler (stores locally as preview for now)
-    onAvatarSelected(ev: Event) {
-      const input = ev.target as HTMLInputElement;
+    onAvatarChange(e: Event) {
+      this.saved = false;
+      this.error = null;
+
+      const input = e.target as HTMLInputElement;
       const file = input.files?.[0];
       if (!file) return;
 
@@ -84,61 +101,44 @@ export function accountStore() {
       reader.readAsDataURL(file);
     },
 
-    reset() {
+    resetForm() {
+      this.saved = false;
+      this.error = null;
+      this.avatarPreview = '';
+
       if (!this.user) return;
       this.firstName = this.user.firstName || '';
       this.lastName = this.user.lastName || '';
       this.email = this.user.email || '';
-      this.avatarUrl = this.user.avatarUrl || '';
-      this.avatarPreview = '';
-      this.error = null;
-      this.success = null;
-      this.saved = false;
-      this.saved = false;
-    },
-
-    async saveChanges() {
-      await this.saveProfile();
     },
 
     async saveProfile() {
       this.saving = true;
       this.error = null;
-      this.success = null;
       this.saved = false;
 
       try {
-        const payload = {
-          firstName: this.firstName,
-          lastName: this.lastName,
-          email: this.email,
-          // if you later implement avatar uploads, switch this to a real URL
-          avatarUrl: this.avatarUrl,
-        };
-
         const res = await fetch('/api/v1/me', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            firstName: this.firstName,
+            lastName: this.lastName,
+            email: this.email,
+            // avatarPreview is a data URL; not writing to DB yet.
+          }),
         });
 
         if (res.status === 401) throw new Error('Please sign in again.');
-        if (!res.ok) {
-          const j = await res.json().catch(() => null);
-          throw new Error(j?.error || 'Update failed');
-        }
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || 'Update failed');
 
-        const updated = await res.json();
-        this.user = updated;
+        this.user = data;
+        this.firstName = data.firstName || '';
+        this.lastName = data.lastName || '';
+        this.email = data.email || '';
 
-        // refresh fields from DB response
-        this.firstName = updated.firstName || '';
-        this.lastName = updated.lastName || '';
-        this.email = updated.email || '';
-        this.avatarUrl = updated.avatarUrl || '';
-
-        this.success = 'Saved.';
         this.saved = true;
         setTimeout(() => { this.saved = false; }, 2500);
       } catch (e: any) {
