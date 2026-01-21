@@ -74,26 +74,8 @@ export function adminStore() {
     async init() {
       await this.refresh();
       await this.refreshPlans();
-        this.toast('Plan deleted', 'success');
-      this.
-    async refreshStats(days: number = 30) {
-      try {
-        const res = await fetch(`/api/v1/admin/stats?days=${days}`, { credentials: 'include' });
-        const j = await res.json().catch(() => null);
-        if (!res.ok) return;
-
-        this.stats = {
-          ...this.stats,
-          activeMemberCount: j?.activeMemberCount ?? this.stats.activeMemberCount,
-          averageUsageRate: j?.averageUsageRate ?? this.stats.averageUsageRate,
-          monthlyProjection: j?.monthlyProjection ?? this.stats.monthlyProjection,
-        };
-        this.dateRangeLabel = `Last ${j?.days || days} days`;
-      } catch {}
-    }
-
-computeStats();
-        this.toast('User deleted', 'success');
+      this.computeStats();
+      await this.refreshStats(30);
     },
 
     navigate(id: string) {
@@ -130,6 +112,21 @@ computeStats();
       return `$${n.toFixed(2)}`;
     },
 
+    async refreshStats(days: number = 30) {
+      try {
+        const res = await fetch(`/api/v1/admin/stats?days=${days}`, { credentials: 'include' });
+        const j = await res.json().catch(() => null);
+        if (!res.ok || !j) return;
+
+        // Map API -> UI
+        this.stats.activeMemberCount = Number(j.activeMemberCount || 0);
+        this.stats.averageUsageRate = Number(j.averageUsageRate || 0);
+        this.stats.monthlyProjection = Number(j.monthlyProjection || 0);
+        // keep memberGrowth as placeholder for now
+        this.dateRangeLabel = `Last ${Number(j.days || days)} days`;
+      } catch {}
+    },
+
     formatPriceCents(priceCents: number) {
       return `$${((priceCents || 0) / 100).toFixed(2)}`;
     },
@@ -151,14 +148,13 @@ computeStats();
         this.loading = false;
       }
     },
-
     computeStats() {
       const active = this.members.filter((m) => m.subStatus === 'active').length;
       this.stats.activeMemberCount = active;
-      this.stats.memberGrowth = 0;
-      this.stats.averageUsageRate = 0;
-      this.stats.monthlyProjection = 0;
+      // NOTE: averageUsageRate and monthlyProjection come from /api/v1/admin/stats
+      // so we do NOT overwrite them here.
     },
+
 
     async deleteUser(id: number) {
       if (!confirm('Delete this user? This deletes sessions, subscriptions, and wash events.')) return;
