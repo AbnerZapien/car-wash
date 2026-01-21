@@ -59,6 +59,11 @@ export function adminStore() {
 
     // Plans
     plans: [] as AdminPlan[],
+    // Audit
+    auditItems: [] as any[],
+    auditLoading: false,
+    auditError: null as string | null,
+
     plansLoading: false,
     plansError: null as string | null,
     planModalOpen: false,
@@ -80,9 +85,9 @@ export function adminStore() {
 
     navigate(id: string) {
       this.activeNav = id;
-      // optional: lazy load
       if (id === 'members') this.refresh();
       if (id === 'plans') this.refreshPlans();
+      if (id === 'audit') this.refreshAudit(100);
     },
 
     search(q: string) {
@@ -193,6 +198,28 @@ export function adminStore() {
         this.plansLoading = false;
       }
     },
+    async refreshAudit(limit: number = 100) {
+      this.auditLoading = true;
+      this.auditError = null;
+      try {
+        const res = await fetch(`/api/v1/admin/audit?limit=${limit}`, { credentials: 'include' });
+        const j = await res.json().catch(() => ({} as any));
+        if (!res.ok) {
+          const msg = j?.error || j?.message || 'Failed to load audit';
+          this.auditError = msg;
+          this.toast(msg, 'error');
+          return;
+        }
+        this.auditItems = j?.items || [];
+      } catch (e: any) {
+        this.auditError = e?.message ?? 'Failed to load audit';
+        this.toast(this.auditError, 'error');
+      } finally {
+        this.auditLoading = false;
+      }
+    },
+
+
 
     openAddPlan() {
       this.planEditingId = null;
