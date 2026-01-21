@@ -1,10 +1,12 @@
 package adapters
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 )
@@ -31,6 +33,7 @@ func (a *AdminAPIService) RegisterRoutes() {
 	g.POST("/plans", a.CreatePlan)
 	g.PUT("/plans/:id", a.UpdatePlan)
 	g.DELETE("/plans/:id", a.DeletePlan)
+	g.GET("/audit", a.ListAudit)
 	g.GET("/stats", a.GetStats)
 }
 
@@ -72,8 +75,79 @@ func (a *AdminAPIService) requireAdmin(next echo.HandlerFunc) echo.HandlerFunc {
 		if role != "admin" {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "forbidden"})
 		}
+		c.Set("adminUserID", uid)
 		return next(c)
 	}
+}
+
+type AdminAuditItem struct {
+	ID            string `json:"id" db:"id"`
+	CreatedAt     string `json:"createdAt" db:"created_at"`
+	AdminUserID   int64  `json:"adminUserId" db:"admin_user_id"`
+	AdminUsername string `json:"adminUsername" db:"admin_username"`
+	Action        string `json:"action" db:"action"`
+	EntityType    string `json:"entityType" db:"entity_type"`
+	EntityID      string `json:"entityId" db:"entity_id"`
+	Detail        string `json:"detail" db:"detail"`
+}
+
+func (a *AdminAPIService) audit(c echo.Context, action, entityType, entityID string, detail any) {
+	if a.db == nil {
+		return
+	}
+	v := c.Get("adminUserID")
+	adminID, ok := v.(int64)
+	if !ok || adminID == 0 {
+		return
+	}
+
+	b, err := json.Marshal(detail)
+	if err != nil {
+		b = []byte(`{}`)
+	}
+
+	q := a.db.Rebind(`
+		INSERT INTO admin_audit_log (id, admin_user_id, action, entity_type, entity_id, detail)
+		VALUES (?, ?, ?, ?, ?, ?::jsonb)
+	`)
+	_, _ = a.db.Exec(q, uuid.NewString(), adminID, action, entityType, entityID, string(b))
+}
+
+func (a *AdminAPIService) ListAudit(c echo.Context) error {
+	limit := 100
+	if s := strings.TrimSpace(c.QueryParam("limit")); s != "" {
+		if n, err := strconv.Atoi(s); err == nil {
+			if n < 1 {
+				n = 1
+			}
+			if n > 500 {
+				n = 500
+			}
+			limit = n
+		}
+	}
+
+	q := a.db.Rebind(`
+		SELECT
+			l.id,
+			COALESCE(l.created_at::text,'') AS created_at,
+			l.admin_user_id,
+			COALESCE(u.username,'') AS admin_username,
+			l.action,
+			l.entity_type,
+			l.entity_id,
+			COALESCE(l.detail::text,'{}') AS detail
+		FROM admin_audit_log l
+		LEFT JOIN users u ON u.id = l.admin_user_id
+		ORDER BY l.created_at DESC
+		LIMIT ?
+	`)
+
+	var items []AdminAuditItem
+	if err := a.db.Select(&items, q, limit); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, map[string]any{"items": items})
 }
 
 type AdminMember struct {
@@ -155,6 +229,7 @@ func (a *AdminAPIService) DeleteUser(c echo.Context) error {
 	if err := tx.Commit(); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+	a.audit(c, "user.delete", "user", idStr, map[string]any{})
 	return c.JSON(http.StatusOK, map[string]any{"ok": true})
 }
 
@@ -202,6 +277,7 @@ func (a *AdminAPIService) CreatePlan(c echo.Context) error {
 	if _, err := a.db.Exec(q, req.ID, req.Name, req.PriceCents, req.FeaturesJSON); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+	a.audit(c, "plan.create", "plan", req.ID, map[string]any{"name": req.Name, "priceCents": req.PriceCents})
 	return c.JSON(http.StatusOK, map[string]any{"ok": true})
 }
 
@@ -230,6 +306,7 @@ func (a *AdminAPIService) UpdatePlan(c echo.Context) error {
 	if _, err := a.db.Exec(q, req.Name, req.PriceCents, req.FeaturesJSON, planID); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+	a.audit(c, "plan.update", "plan", planID, map[string]any{"name": req.Name, "priceCents": req.PriceCents})
 	return c.JSON(http.StatusOK, map[string]any{"ok": true})
 }
 
@@ -243,6 +320,7 @@ func (a *AdminAPIService) DeletePlan(c echo.Context) error {
 	var cnt int
 	q1 := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE plan_id = ?`)
 	if err := a.db.Get(&cnt, q1, planID); err == nil && cnt > 0 {
+		a.audit(c, "plan.delete_blocked", "plan", planID, map[string]any{"subscribers": cnt})
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "plan has subscriptions; move users first"})
 	}
 
@@ -250,6 +328,7 @@ func (a *AdminAPIService) DeletePlan(c echo.Context) error {
 	if _, err := a.db.Exec(q, planID); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+	a.audit(c, "plan.delete", "plan", planID, map[string]any{})
 	return c.JSON(http.StatusOK, map[string]any{"ok": true})
 }
 
