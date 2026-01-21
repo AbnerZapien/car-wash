@@ -1,0 +1,14 @@
+-- +goose Up
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member';
+
+-- Promote existing admin user (if present)
+UPDATE users
+SET role = 'admin'
+WHERE username = 'admin';
+
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+-- +goose Down
+DROP INDEX IF EXISTS idx_users_role;
+ALTER TABLE users DROP COLUMN IF EXISTS role;
