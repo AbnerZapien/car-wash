@@ -28,6 +28,7 @@ type ScanResponse struct {
 	PlanID     string `json:"planId,omitempty"`
 	PlanName   string `json:"planName,omitempty"`
 	LocationID string `json:"locationId,omitempty"`
+	UserName   string `json:"userName,omitempty"`
 }
 
 type subscriptionRow struct {
@@ -78,7 +79,7 @@ func (s *ScanAPIService) Scan(c echo.Context) error {
 			return c.JSON(500, map[string]any{"allowed": false, "reason": "Failed to record wash event"})
 		}
 
-		return c.JSON(http.StatusBadRequest, ScanResponse{Allowed: false, Reason: parseReason})
+		return c.JSON(http.StatusBadRequest, ScanResponse{Allowed: false, Reason: parseReason, LocationID: req.LocationID})
 	}
 
 	// Validate active subscription
@@ -93,7 +94,8 @@ func (s *ScanAPIService) Scan(c echo.Context) error {
 	if err != nil {
 		reason := "No active subscription"
 		_ = insertWashEvent(s.db, userID, req.LocationID, "denied", req.QR, reason)
-		return c.JSON(http.StatusOK, ScanResponse{Allowed: false, Reason: reason})
+		return c.JSON(http.StatusOK, ScanResponse{Allowed: false, Reason: reason, UserID: userID, LocationID: req.LocationID,
+			UserName: scanUserDisplayName(s.db, userID)})
 	}
 
 	// Lookup plan
@@ -108,6 +110,7 @@ func (s *ScanAPIService) Scan(c echo.Context) error {
 		PlanID:     sub.PlanID,
 		PlanName:   plan.Name,
 		LocationID: req.LocationID,
+		UserName:   scanUserDisplayName(s.db, userID),
 	})
 }
 
@@ -134,29 +137,16 @@ func parseUserIDFromQR(qr string) (int, string) {
 	return uid, ""
 }
 
-func insertWashEvent(db *sqlx.DB, userID int, locationID, result, rawQR, reason string) error {
-	id := uuid.NewString()
-	scannedAt := time.Now().UTC().Format(time.RFC3339)
-
-	q := db.Rebind(`
-		INSERT INTO wash_events (id, user_id, location_id, scanned_at, result, raw_qr, reason)
-		VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, NULLIF(?, ''))
-	`)
-	_, err := db.Exec(q, id, userID, locationID, scannedAt, result, rawQR, reason)
-	return err
-}
-
 type scanUserRow struct {
 	FirstName string `db:"first_name"`
 	LastName  string `db:"last_name"`
 	Username  string `db:"username"`
 }
 
-func userDisplayName(db *sqlx.DB, userID int) string {
+func scanUserDisplayName(db *sqlx.DB, userID int) string {
 	if db == nil {
 		return fmt.Sprintf("Member #%d", userID)
 	}
-
 	var u scanUserRow
 	q := db.Rebind(`SELECT COALESCE(first_name,'') AS first_name, COALESCE(last_name,'') AS last_name, COALESCE(username,'') AS username FROM users WHERE id = ? LIMIT 1`)
 	_ = db.Get(&u, q, userID)
@@ -169,4 +159,16 @@ func userDisplayName(db *sqlx.DB, userID int) string {
 		return strings.TrimSpace(u.Username)
 	}
 	return fmt.Sprintf("Member #%d", userID)
+}
+
+func insertWashEvent(db *sqlx.DB, userID int, locationID, result, rawQR, reason string) error {
+	id := uuid.NewString()
+	scannedAt := time.Now().UTC().Format(time.RFC3339)
+
+	q := db.Rebind(`
+		INSERT INTO wash_events (id, user_id, location_id, scanned_at, result, raw_qr, reason)
+		VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, NULLIF(?, ''))
+	`)
+	_, err := db.Exec(q, id, userID, locationID, scannedAt, result, rawQR, reason)
+	return err
 }
