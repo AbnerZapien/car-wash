@@ -79,7 +79,7 @@ export function adminStore() {
     async init() {
       await this.refresh();
       await this.refreshPlans();
-        this.toast('Plan deleted (logged to Audit)', 'success');
+        
       this.computeStats();
       await this.refreshStats(30);
     },
