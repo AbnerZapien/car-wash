@@ -212,6 +212,19 @@ export function adminStore() {
       const w: any = window as any;
       w.__adminCharts = w.__adminCharts || {};
 
+      const colors = {
+        indigo: '#4F46E5',
+        violet: '#7C3AED',
+        pink: '#EC4899',
+        amber: '#F59E0B',
+        emerald: '#10B981',
+        sky: '#0EA5E9',
+        slate: '#94A3B8',
+        gray: '#E2E8F0',
+      };
+      const pieColors = [colors.indigo, colors.violet, colors.pink, colors.amber, colors.emerald, colors.sky, colors.slate];
+
+
       const labels7 = (d.labels || []).slice(-7);
       const scans7 = (d.scansPerDay || []).slice(-7);
 
@@ -220,7 +233,7 @@ export function adminStore() {
       if (c1) {
         const cfg: any = {
           type: 'line',
-          data: { labels: labels7, datasets: [{ label: 'Scans', data: scans7, tension: 0.4, fill: false, pointRadius: 0 }] },
+          data: { labels: labels7, datasets: [{ label: 'Scans', data: scans7, tension: 0.4, fill: true, pointRadius: 0, borderColor: colors.indigo, backgroundColor: 'rgba(79,70,229,0.15)' }] },
           options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } },
         };
         if (w.__adminCharts.activeMembers) { w.__adminCharts.activeMembers.data = cfg.data; w.__adminCharts.activeMembers.update(); }
@@ -234,7 +247,7 @@ export function adminStore() {
       if (c2) {
         const cfg: any = {
           type: 'doughnut',
-          data: { datasets: [{ data: [ratio, 1 - ratio], borderWidth: 0 }] },
+          data: { datasets: [{ data: [ratio, 1 - ratio], borderWidth: 0, backgroundColor: [colors.indigo, colors.gray] }] },
           options: { responsive: true, maintainAspectRatio: false, cutout: '70%', rotation: -1.25 * Math.PI, circumference: Math.PI, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
         };
         if (w.__adminCharts.usageRate) { w.__adminCharts.usageRate.data = cfg.data; w.__adminCharts.usageRate.update(); }
@@ -248,7 +261,7 @@ export function adminStore() {
       if (c3) {
         const cfg: any = {
           type: 'bar',
-          data: { labels: ['Week 1','Week 2','Week 3','Week 4'], datasets: [{ label: 'Projection ($)', data: weeks, borderRadius: 5 }] },
+          data: { labels: ['Week 1','Week 2','Week 3','Week 4'], datasets: [{ label: 'Projection ($)', data: weeks, borderRadius: 5, backgroundColor: colors.indigo }] },
           options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } },
         };
         if (w.__adminCharts.projection) { w.__adminCharts.projection.data = cfg.data; w.__adminCharts.projection.update(); }
@@ -260,7 +273,7 @@ export function adminStore() {
       if (c4) {
         const cfg: any = {
           type: 'pie',
-          data: { labels: d.planMixLabels || [], datasets: [{ data: d.planMixCounts || [] }] },
+          data: { labels: d.planMixLabels || [], datasets: [{ data: d.planMixCounts || [], backgroundColor: (d.planMixLabels || []).map((_: any, i: number) => pieColors[i % pieColors.length]) }] },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } },
         };
         if (w.__adminCharts.planMix) { w.__adminCharts.planMix.data = cfg.data; w.__adminCharts.planMix.update(); }
@@ -275,9 +288,9 @@ export function adminStore() {
           data: {
             labels: d.heatmapLabels || ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
             datasets: [
-              { label: 'Morning', data: d.heatmapMorning || [], stack: 'x' },
-              { label: 'Afternoon', data: d.heatmapAfternoon || [], stack: 'x' },
-              { label: 'Evening', data: d.heatmapEvening || [], stack: 'x' },
+              { label: 'Morning', data: d.heatmapMorning || [], stack: 'x', backgroundColor: '#C7D2FE' },
+              { label: 'Afternoon', data: d.heatmapAfternoon || [], stack: 'x', backgroundColor: '#818CF8' },
+              { label: 'Evening', data: d.heatmapEvening || [], stack: 'x', backgroundColor: '#4F46E5' },
             ],
           },
           options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, display: false } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } },
@@ -293,7 +306,7 @@ export function adminStore() {
         const ret30 = (d.retentionPctPerDay || []).slice(-30);
         const cfg: any = {
           type: 'line',
-          data: { labels: lbl30, datasets: [{ label: 'Unique users / active subs (%)', data: ret30, tension: 0.3, fill: false, pointRadius: 0 }] },
+          data: { labels: lbl30, datasets: [{ label: 'Unique users / active subs (%)', data: ret30, tension: 0.3, fill: true, pointRadius: 0, borderColor: colors.emerald, backgroundColor: 'rgba(16,185,129,0.15)' }] },
           options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } },
         };
         if (w.__adminCharts.retention) { w.__adminCharts.retention.data = cfg.data; w.__adminCharts.retention.update(); }
