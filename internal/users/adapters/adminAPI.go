@@ -354,18 +354,55 @@ func (a *AdminAPIService) GetStats(c echo.Context) error {
 		}
 	}
 
-	// Active members = active subscriptions
-	var active int
-	q1 := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
-	if err := a.db.Get(&active, q1); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	locationID := strings.TrimSpace(c.QueryParam("locationId"))
+	if locationID == "all" {
+		locationID = ""
 	}
 
-	// Total scans in last N days
+	// Active members:
+	// - No filter: count all active subscriptions
+	// - Filter: count active subscriptions whose users scanned at that location in window
+	var active int
+	if locationID == "" {
+		q1 := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
+		if err := a.db.Get(&active, q1); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+	} else {
+		q1 := a.db.Rebind(`
+			WITH loc_users AS (
+				SELECT DISTINCT user_id
+				FROM wash_events
+				WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')
+				  AND location_id = ?
+			)
+			SELECT COUNT(1)
+			FROM subscriptions s
+			WHERE s.status = 'active'
+			  AND s.user_id IN (SELECT user_id FROM loc_users)
+		`)
+		if err := a.db.Get(&active, q1, days, locationID); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+	}
+
+	// Scans (location-filtered if provided)
 	var scans int
-	q2 := a.db.Rebind(`SELECT COUNT(1) FROM wash_events WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')`)
-	if err := a.db.Get(&scans, q2, days); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	if locationID == "" {
+		q2 := a.db.Rebind(`SELECT COUNT(1) FROM wash_events WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')`)
+		if err := a.db.Get(&scans, q2, days); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+	} else {
+		q2 := a.db.Rebind(`
+			SELECT COUNT(1)
+			FROM wash_events
+			WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')
+			  AND location_id = ?
+		`)
+		if err := a.db.Get(&scans, q2, days, locationID); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
 	}
 
 	avg := 0.0
@@ -373,16 +410,35 @@ func (a *AdminAPIService) GetStats(c echo.Context) error {
 		avg = float64(scans) / float64(active)
 	}
 
-	// Monthly projection: sum plan price cents for active subs
+	// Monthly projection
 	var cents int
-	q3 := a.db.Rebind(`
-		SELECT COALESCE(SUM(p.price_cents), 0)
-		FROM subscriptions s
-		JOIN plans p ON p.id = s.plan_id
-		WHERE s.status = 'active'
-	`)
-	if err := a.db.Get(&cents, q3); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	if locationID == "" {
+		q3 := a.db.Rebind(`
+			SELECT COALESCE(SUM(p.price_cents), 0)
+			FROM subscriptions s
+			JOIN plans p ON p.id = s.plan_id
+			WHERE s.status = 'active'
+		`)
+		if err := a.db.Get(&cents, q3); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+	} else {
+		q3 := a.db.Rebind(`
+			WITH loc_users AS (
+				SELECT DISTINCT user_id
+				FROM wash_events
+				WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')
+				  AND location_id = ?
+			)
+			SELECT COALESCE(SUM(p.price_cents), 0)
+			FROM subscriptions s
+			JOIN plans p ON p.id = s.plan_id
+			WHERE s.status = 'active'
+			  AND s.user_id IN (SELECT user_id FROM loc_users)
+		`)
+		if err := a.db.Get(&cents, q3, days, locationID); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
 	}
 
 	out := AdminStats{
@@ -565,33 +621,81 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		}
 	}
 
-	// Active members (active subscriptions)
+	locationID := strings.TrimSpace(c.QueryParam("locationId"))
+	if locationID == "all" {
+		locationID = ""
+	}
+
+	// Active members & projection: scope to users who scanned at this location in window (if filtered)
 	var active int
-	q1 := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
-	if err := a.db.Get(&active, q1); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	if locationID == "" {
+		q := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
+		if err := a.db.Get(&active, q); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+	} else {
+		q := a.db.Rebind(`
+			WITH loc_users AS (
+				SELECT DISTINCT user_id
+				FROM wash_events
+				WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')
+				  AND location_id = ?
+			)
+			SELECT COUNT(1)
+			FROM subscriptions s
+			WHERE s.status = 'active'
+			  AND s.user_id IN (SELECT user_id FROM loc_users)
+		`)
+		if err := a.db.Get(&active, q, days, locationID); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
 	}
 
-	// Monthly projection (sum plan price cents for active subs)
 	var cents int
-	q2 := a.db.Rebind(`
-		SELECT COALESCE(SUM(p.price_cents), 0)
-		FROM subscriptions s
-		JOIN plans p ON p.id = s.plan_id
-		WHERE s.status = 'active'
-	`)
-	if err := a.db.Get(&cents, q2); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	if locationID == "" {
+		q := a.db.Rebind(`
+			SELECT COALESCE(SUM(p.price_cents), 0)
+			FROM subscriptions s
+			JOIN plans p ON p.id = s.plan_id
+			WHERE s.status = 'active'
+		`)
+		if err := a.db.Get(&cents, q); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+	} else {
+		q := a.db.Rebind(`
+			WITH loc_users AS (
+				SELECT DISTINCT user_id
+				FROM wash_events
+				WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')
+				  AND location_id = ?
+			)
+			SELECT COALESCE(SUM(p.price_cents), 0)
+			FROM subscriptions s
+			JOIN plans p ON p.id = s.plan_id
+			WHERE s.status = 'active'
+			  AND s.user_id IN (SELECT user_id FROM loc_users)
+		`)
+		if err := a.db.Get(&cents, q, days, locationID); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
 	}
-	monthlyProjection := float64(cents) / 100.0
 
-	// Daily scans + unique users for last N days (include today)
+	// Daily series
 	type dayRow struct {
 		Day   string `db:"day"`
 		Scans int    `db:"scans"`
 		Users int    `db:"users"`
 	}
-	qDaily := a.db.Rebind(`
+
+	whereLoc := ""
+	argsLoc := make([]any, 0, 1)
+	if locationID != "" {
+		whereLoc = " AND location_id = ?"
+		argsLoc = append(argsLoc, locationID)
+	}
+
+	qDailySQL := `
 		WITH days AS (
 			SELECT generate_series(
 				current_date - ((?::int - 1) * interval '1 day'),
@@ -605,7 +709,7 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 				COUNT(*) AS scans,
 				COUNT(DISTINCT user_id) AS users
 			FROM wash_events
-			WHERE scanned_at >= NOW() - (?::int * interval '1 day')
+			WHERE scanned_at >= NOW() - (?::int * interval '1 day')` + whereLoc + `
 			GROUP BY 1
 		)
 		SELECT
@@ -615,27 +719,30 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		FROM days d
 		LEFT JOIN agg a ON a.day = d.day
 		ORDER BY d.day ASC
-	`)
+	`
+	qDaily := a.db.Rebind(qDailySQL)
+
+	argsDaily := append([]any{days, days}, argsLoc...)
 	var rows []dayRow
-	if err := a.db.Select(&rows, qDaily, days, days); err != nil {
+	if err := a.db.Select(&rows, qDaily, argsDaily...); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
 	labels := make([]string, 0, len(rows))
-	scans := make([]int, 0, len(rows))
-	users := make([]int, 0, len(rows))
-	ret := make([]float64, 0, len(rows))
+	scansPerDay := make([]int, 0, len(rows))
+	uniqueUsers := make([]int, 0, len(rows))
+	retention := make([]float64, 0, len(rows))
 
 	totalScans := 0
 	for _, r := range rows {
 		labels = append(labels, r.Day)
-		scans = append(scans, r.Scans)
-		users = append(users, r.Users)
+		scansPerDay = append(scansPerDay, r.Scans)
+		uniqueUsers = append(uniqueUsers, r.Users)
 		totalScans += r.Scans
 		if active > 0 {
-			ret = append(ret, (float64(r.Users)/float64(active))*100.0)
+			retention = append(retention, (float64(r.Users)/float64(active))*100.0)
 		} else {
-			ret = append(ret, 0)
+			retention = append(retention, 0)
 		}
 	}
 
@@ -644,21 +751,40 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		avgUsage = float64(totalScans) / float64(active)
 	}
 
-	// Plan mix (active subscriptions by plan)
+	// Plan mix
 	type mixRow struct {
 		Name string `db:"name"`
 		Cnt  int    `db:"cnt"`
 	}
-	qMix := a.db.Rebind(`
-		SELECT p.name, COUNT(*) AS cnt
-		FROM subscriptions s
-		JOIN plans p ON p.id = s.plan_id
-		WHERE s.status = 'active'
-		GROUP BY p.name
-		ORDER BY cnt DESC
-	`)
 	var mix []mixRow
-	_ = a.db.Select(&mix, qMix)
+	if locationID == "" {
+		qMix := a.db.Rebind(`
+			SELECT p.name, COUNT(*) AS cnt
+			FROM subscriptions s
+			JOIN plans p ON p.id = s.plan_id
+			WHERE s.status = 'active'
+			GROUP BY p.name
+			ORDER BY cnt DESC
+		`)
+		_ = a.db.Select(&mix, qMix)
+	} else {
+		qMix := a.db.Rebind(`
+			WITH loc_users AS (
+				SELECT DISTINCT user_id
+				FROM wash_events
+				WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')
+				  AND location_id = ?
+			)
+			SELECT p.name, COUNT(*) AS cnt
+			FROM subscriptions s
+			JOIN plans p ON p.id = s.plan_id
+			WHERE s.status = 'active'
+			  AND s.user_id IN (SELECT user_id FROM loc_users)
+			GROUP BY p.name
+			ORDER BY cnt DESC
+		`)
+		_ = a.db.Select(&mix, qMix, days, locationID)
+	}
 
 	planLabels := []string{}
 	planCounts := []int{}
@@ -667,7 +793,7 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		planCounts = append(planCounts, r.Cnt)
 	}
 
-	// Heatmap (last 7 days): Mon..Sun and Morning/Afternoon/Evening counts
+	// Heatmap last 7 days
 	heatLabels := []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
 	morn := make([]int, 7)
 	aft := make([]int, 7)
@@ -678,7 +804,15 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		Segment string `db:"segment"`
 		Cnt     int    `db:"cnt"`
 	}
-	qHeat := a.db.Rebind(`
+
+	heatWhere := ""
+	heatArgs := make([]any, 0, 1)
+	if locationID != "" {
+		heatWhere = " AND location_id = ?"
+		heatArgs = append(heatArgs, locationID)
+	}
+
+	qHeatSQL := `
 		SELECT
 			(EXTRACT(DOW FROM scanned_at)::int) AS dow,
 			CASE
@@ -688,11 +822,13 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 			END AS segment,
 			COUNT(*) AS cnt
 		FROM wash_events
-		WHERE scanned_at >= NOW() - (7 * interval '1 day')
+		WHERE scanned_at >= NOW() - (7 * interval '1 day')` + heatWhere + `
 		GROUP BY 1, 2
-	`)
+	`
+	qHeat := a.db.Rebind(qHeatSQL)
+
 	var heat []heatRow
-	_ = a.db.Select(&heat, qHeat)
+	_ = a.db.Select(&heat, qHeat, heatArgs...)
 
 	// Postgres DOW: 0=Sun..6=Sat. We want 0=Mon..6=Sun
 	mapDow := func(pgDow int) int {
@@ -721,13 +857,13 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		Days: days,
 
 		Labels:             labels,
-		ScansPerDay:        scans,
-		UniqueUsersPerDay:  users,
-		RetentionPctPerDay: ret,
+		ScansPerDay:        scansPerDay,
+		UniqueUsersPerDay:  uniqueUsers,
+		RetentionPctPerDay: retention,
 
 		ActiveMemberCount: active,
 		AverageUsageRate:  avgUsage,
-		MonthlyProjection: monthlyProjection,
+		MonthlyProjection: float64(cents) / 100.0,
 
 		PlanMixLabels: planLabels,
 		PlanMixCounts: planCounts,
