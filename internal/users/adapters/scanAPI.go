@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -143,4 +144,29 @@ func insertWashEvent(db *sqlx.DB, userID int, locationID, result, rawQR, reason 
 	`)
 	_, err := db.Exec(q, id, userID, locationID, scannedAt, result, rawQR, reason)
 	return err
+}
+
+type scanUserRow struct {
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+	Username  string `db:"username"`
+}
+
+func userDisplayName(db *sqlx.DB, userID int) string {
+	if db == nil {
+		return fmt.Sprintf("Member #%d", userID)
+	}
+
+	var u scanUserRow
+	q := db.Rebind(`SELECT COALESCE(first_name,'') AS first_name, COALESCE(last_name,'') AS last_name, COALESCE(username,'') AS username FROM users WHERE id = ? LIMIT 1`)
+	_ = db.Get(&u, q, userID)
+
+	name := strings.TrimSpace(strings.TrimSpace(u.FirstName) + " " + strings.TrimSpace(u.LastName))
+	if name != "" {
+		return name
+	}
+	if strings.TrimSpace(u.Username) != "" {
+		return strings.TrimSpace(u.Username)
+	}
+	return fmt.Sprintf("Member #%d", userID)
 }
