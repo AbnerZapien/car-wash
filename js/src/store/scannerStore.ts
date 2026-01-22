@@ -69,12 +69,6 @@ export function scannerStore() {
 
       // Preload cameras list (labels may be empty until permission)
       try {
-        if (!this.locationId) {
-          this.scanAllowed = false;
-          this.scanReason = 'Please select a location before scanning.';
-          this.showSuccessModal = true;
-          return;
-        }
 
         const cams = await Html5Qrcode.getCameras();
         this.cameras = (cams || []).map((c) => ({ id: c.id, label: c.label || '' }));
@@ -263,6 +257,13 @@ async refreshCameras() {
     },
 
     async handleScanResult(code: string) {
+      if (!this.locationId) {
+        this.scanAllowed = false;
+        this.scanReason = 'Please select a location before scanning.';
+        this.showSuccessModal = true;
+        return;
+      }
+
       this.error = null;
       this.scanAllowed = null;
       this.scanReason = '';
