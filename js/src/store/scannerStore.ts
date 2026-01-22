@@ -14,6 +14,7 @@ type ScanAPIResponse = {
   planId?: string;
   planName?: string;
   locationId?: string;
+  userName?: string;
 };
 
 type CameraInfo = { id: string; label: string };
@@ -52,7 +53,15 @@ export function scannerStore() {
     scanAllowed: true as boolean | null,
     scanReason: '' as string,
 
+    autoResumeOnDeny: true,
+    autoResumeMs: 2500,
+
     locationId: '',
+
+    get selectedLocationName(): string {
+      const l = (this.locations || []).find((x: any) => x.id === this.locationId);
+      return l?.name || this.locationId || "—";
+    },
 
     // Locations
     locations: [] as LocationInfo[],
@@ -261,6 +270,14 @@ async refreshCameras() {
         this.scanAllowed = false;
         this.scanReason = 'Please select a location before scanning.';
         this.showSuccessModal = true;
+
+        if (this.scanAllowed === false && this.autoResumeOnDeny) {
+          setTimeout(() => {
+            if (this.showSuccessModal && this.scanAllowed === false) {
+              this.closeModal();
+            }
+          }, this.autoResumeMs);
+        }
         return;
       }
 
@@ -281,7 +298,7 @@ async refreshCameras() {
         if (data.allowed) {
           this.scanAllowed = true;
           this.scannedUser = {
-            name: data.userId ? `Member #${data.userId}` : 'Member',
+            name: (data.userName || (data.userId ? `Member #${data.userId}` : 'Member')),
             plan: data.planName || data.planId || 'Active Plan',
           };
         } else {
@@ -296,12 +313,13 @@ async refreshCameras() {
       }
     },
 
-    closeModal() {
+    async closeModal() {
       this.showSuccessModal = false;
       this.scannedUser = null;
       this.scanAllowed = null;
       this.scanReason = '';
       this.startScan();
-    },
+		await this.startScan();
+	},
   };
 }
