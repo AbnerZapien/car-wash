@@ -75,6 +75,7 @@ templ Portal(vm PortalVM) {
 						{ id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
 						{ id: 'members', icon: 'people', label: 'Members' },
 							{ id: 'plans', icon: 'sell', label: 'Plans' },
+							{ id: 'audit', icon: 'history', label: 'Audit' },
 						{ id: 'usage', icon: 'directions_car', label: 'Usage' },
 						{ id: 'attrition', icon: 'trending_down', label: 'Attrition' },
 						{ id: 'attendants', icon: 'support_agent', label: 'Attendants' },
@@ -438,12 +439,103 @@ templ Portal(vm PortalVM) {
 									</button>
 								</div>
 							</div>
+
+						<!-- Reassign subscribers modal -->
+						<div x-show="reassignOpen" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+							<div class="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+								<div class="flex items-center justify-between mb-4">
+									<h3 class="text-lg font-bold text-slate-800">Reassign subscribers</h3>
+									<button class="text-slate-500 hover:text-slate-800" @click="closeReassign()">✕</button>
+								</div>
+
+								<p class="text-slate-600 text-sm mb-4">
+									This plan has active subscribers. Move them to another plan before deleting
+									<span class="font-semibold" x-text="reassignFromId"></span>.
+								</p>
+
+								<div class="grid grid-cols-1 gap-4">
+									<div>
+										<label class="text-sm font-medium text-slate-700">Move subscribers to</label>
+										<select class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+											x-model="reassignToId">
+											<template x-for="p in plans.filter(p => p.id !== reassignFromId)" :key="p.id">
+												<option :value="p.id" x-text="`${p.name} (${p.id})`"></option>
+											</template>
+										</select>
+										<p class="text-xs text-slate-500 mt-2">
+											This will update active subscriptions from <span class="font-medium" x-text="reassignFromId"></span>
+											to <span class="font-medium" x-text="reassignToId"></span>.
+										</p>
+									</div>
+								</div>
+
+								<div class="mt-6 flex justify-end gap-2">
+									<button class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300" @click="closeReassign()">Cancel</button>
+									<button class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
+										:disabled="reassignLoading"
+										@click="confirmReassign()">
+										<span x-text="reassignLoading ? 'Reassigning…' : 'Reassign & Delete'"></span>
+									</button>
+								</div>
+							</div>
+						</div>
+
 						</div>
 
 					</div>
 
+					
+					<!-- Audit Log (DB-backed) -->
+					<div x-show="activeNav === 'audit'" x-cloak class="mt-2">
+						<div class="flex items-center justify-between mb-4">
+							<h2 class="text-xl md:text-2xl font-bold text-slate-800">Audit Log</h2>
+							<button class="px-3 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
+								@click="refreshAudit(100)">
+								Refresh
+							</button>
+						</div>
+
+						<div x-show="auditLoading" class="p-4 bg-white border border-slate-200 rounded-lg">Loading…</div>
+						<div x-show="auditError" x-text="auditError" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg" x-cloak></div>
+
+						<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+							<div class="overflow-x-auto">
+								<table class="min-w-full text-sm">
+									<thead class="bg-slate-50 text-slate-600">
+										<tr>
+											<th class="text-left px-4 py-3">Time (UTC)</th>
+											<th class="text-left px-4 py-3">Admin</th>
+											<th class="text-left px-4 py-3">Action</th>
+											<th class="text-left px-4 py-3">Entity</th>
+											<th class="text-left px-4 py-3">Detail</th>
+										</tr>
+									</thead>
+									<tbody class="divide-y divide-slate-100">
+										<template x-for="it in auditItems" :key="it.id">
+											<tr class="text-slate-800 align-top">
+												<td class="px-4 py-3 whitespace-nowrap" x-text="it.createdAt"></td>
+												<td class="px-4 py-3" x-text="it.adminUsername || it.adminUserId"></td>
+												<td class="px-4 py-3" x-text="it.action"></td>
+												<td class="px-4 py-3" x-text="`${it.entityType}:${it.entityId}`"></td>
+												<td class="px-4 py-3">
+													<details class="cursor-pointer">
+														<summary class="text-blue-600 hover:underline">View</summary>
+														<pre class="mt-2 text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 overflow-auto max-w-[520px]" x-text="it.detail"></pre>
+													</details>
+												</td>
+											</tr>
+										</template>
+										<tr x-show="!auditLoading && (!auditItems || auditItems.length === 0)">
+											<td colspan="5" class="px-4 py-6 text-center text-slate-500">No audit events yet.</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+
 					<!-- Placeholder for other nav sections -->
-				<div x-show="!['dashboard', 'members', 'plans'].includes(activeNav)" x-cloak>
+				<div x-show="!['dashboard', 'members', 'plans', 'audit'].includes(activeNav)" x-cloak>
 					<div class="bg-white rounded-xl shadow-sm p-12 text-center">
 						<span class="material-icons-outlined text-6xl text-slate-300 mb-4">construction</span>
 						<h3 class="text-xl font-medium text-slate-600 mb-2">Coming Soon</h3>
