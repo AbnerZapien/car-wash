@@ -177,6 +177,7 @@ export function adminStore() {
       // refresh analytics for this location
       this.refreshStats(30);
       this.refreshCharts(30);
+      if (this.activeNav === 'members') this.refresh();
     },
 
 
@@ -189,7 +190,7 @@ export function adminStore() {
       this.loading = true;
       this.error = null;
       try {
-        const res = await fetch('/api/v1/admin/members', { credentials: 'include' });
+        const res = await fetch(`/api/v1/admin/members?days=30&locationId=${encodeURIComponent(this.selectedLocationId || 'all')}`, { credentials: 'include' });
         if (res.status === 401) throw new Error('Please sign in as admin.');
         if (res.status === 403) throw new Error('Forbidden (admin only).');
         if (!res.ok) throw new Error('Failed to load members');
