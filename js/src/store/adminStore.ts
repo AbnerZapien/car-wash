@@ -79,6 +79,7 @@ export function adminStore() {
     async init() {
       await this.refresh();
       await this.refreshPlans();
+        this.toast('Plan deleted (logged to Audit)', 'success');
       this.computeStats();
       await this.refreshStats(30);
     },
@@ -293,6 +294,7 @@ export function adminStore() {
 
         this.closePlanModal();
         await this.refreshPlans();
+        this.toast('Plan saved (logged to Audit)', 'success');
       } catch (e: any) {
         this.plansError = e?.message ?? 'Save failed';
         this.planSaving = false;
@@ -306,8 +308,19 @@ export function adminStore() {
           method: 'DELETE',
           credentials: 'include',
         });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(j?.error || 'Delete failed');
+        const j = await res.json().catch(() => ({} as any));
+        if (!res.ok) {
+          const msg = j?.error || j?.message || 'Delete failed';
+          this.toast(msg, 'error');
+          return;
+        }
+
+        // Optimistic UI update (so it disappears immediately)
+        this.plans = (this.plans || []).filter((p: any) => p.id !== id);
+
+        this.toast('Plan deleted (logged to Audit)', 'success');
+
+        // Re-sync from DB (keeps ordering & confirms)
         await this.refreshPlans();
       } catch (e: any) {
         this.toast(e?.message ?? 'Delete failed', 'error');
