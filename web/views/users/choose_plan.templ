@@ -48,6 +48,19 @@ templ ChoosePlan(vm ChoosePlanVM) {
 						</div>
 					</template>
 				</div>
+
+				<div class="mt-10 flex items-center justify-between">
+					<div class="text-slate-500 text-sm">
+						Selected: <span class="font-semibold text-slate-800" x-text="selectedPlan?.name || '—'"></span>
+					</div>
+
+					<button class="px-5 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50"
+						:disabled="saving || !selectedPlanId"
+						@click="save()">
+						<span x-text="saving ? 'Saving…' : 'Continue'"></span>
+					</button>
+				</div>
+
 			</main>
 		</div>
 	}
