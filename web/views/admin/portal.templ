@@ -109,6 +109,7 @@ templ Portal(vm PortalVM) {
 						{ id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
 						{ id: 'members', icon: 'people', label: 'Members' },
 							{ id: 'plans', icon: 'sell', label: 'Plans' },
+							{ id: 'locations', icon: 'place', label: 'Locations' },
 							{ id: 'audit', icon: 'history', label: 'Audit' },
 						{ id: 'usage', icon: 'directions_car', label: 'Usage' },
 						{ id: 'attrition', icon: 'trending_down', label: 'Attrition' },
@@ -366,6 +367,110 @@ templ Portal(vm PortalVM) {
 					</div>
 				</div>
 				
+					
+					<!-- Locations (DB-backed) -->
+					<div x-show="activeNav === 'locations'" x-cloak class="mt-2">
+						<div class="flex items-center justify-between mb-4">
+							<h2 class="text-xl md:text-2xl font-bold text-slate-800">Locations</h2>
+							<div class="flex gap-2">
+								<button class="px-3 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
+									@click="refreshLocations()">
+									Refresh
+								</button>
+								<button class="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+									@click="openAddLocation()">
+									Add location
+								</button>
+							</div>
+						</div>
+
+						<div x-show="locationsLoading" class="p-4 bg-white border border-slate-200 rounded-lg">Loading…</div>
+						<div x-show="locationsError" x-text="locationsError" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg" x-cloak></div>
+
+						<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+							<div class="overflow-x-auto">
+								<table class="min-w-full text-sm">
+									<thead class="bg-slate-50 text-slate-600">
+										<tr>
+											<th class="text-left px-4 py-3">ID</th>
+											<th class="text-left px-4 py-3">Name</th>
+											<th class="text-left px-4 py-3">Address</th>
+											<th class="text-right px-4 py-3">Actions</th>
+										</tr>
+									</thead>
+									<tbody class="divide-y divide-slate-100">
+										<template x-for="l in locations" :key="l.id">
+											<tr class="text-slate-800">
+												<td class="px-4 py-3" x-text="l.id"></td>
+												<td class="px-4 py-3" x-text="l.name"></td>
+												<td class="px-4 py-3" x-text="l.address || '—'"></td>
+												<td class="px-4 py-3 text-right">
+													<button class="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300"
+														@click="openEditLocation(l)">
+														Edit
+													</button>
+													<button class="ml-2 px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700"
+														@click="deleteLocation(l.id)">
+														Delete
+													</button>
+												</td>
+											</tr>
+										</template>
+										<tr x-show="!locationsLoading && (!locations || locations.length === 0)">
+											<td colspan="4" class="px-4 py-6 text-center text-slate-500">No locations found.</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+
+						<!-- Location modal -->
+						<div x-show="locationModalOpen" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+							<div class="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+								<div class="flex items-center justify-between mb-4">
+									<h3 class="text-lg font-bold text-slate-800" x-text="locationEditingId ? 'Edit location' : 'Add location'"></h3>
+									<button class="text-slate-500 hover:text-slate-800" @click="closeLocationModal()">✕</button>
+								</div>
+
+								<div class="grid grid-cols-1 gap-4">
+									<div>
+										<label class="text-sm font-medium text-slate-700">ID</label>
+										<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+											:disabled="!!locationEditingId"
+											x-model="locationForm.id"
+											placeholder="loc-1"
+										/>
+										<p class="text-xs text-slate-500 mt-1" x-show="!!locationEditingId">ID cannot be changed.</p>
+									</div>
+									<div>
+										<label class="text-sm font-medium text-slate-700">Name</label>
+										<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+											x-model="locationForm.name"
+											placeholder="Downtown"
+										/>
+									</div>
+									<div>
+										<label class="text-sm font-medium text-slate-700">Address</label>
+										<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+											x-model="locationForm.address"
+											placeholder="123 Main St"
+										/>
+									</div>
+								</div>
+
+								<div class="mt-6 flex justify-end gap-2">
+									<button class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300" @click="closeLocationModal()">Cancel</button>
+									<button class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
+										:disabled="locationSaving"
+										@click="saveLocation()">
+										<span x-text="locationSaving ? 'Saving…' : 'Save'"></span>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+
 					<!-- Plans (DB-backed) -->
 					<div x-show="activeNav === 'plans'" x-cloak class="mt-2">
 						<div class="flex items-center justify-between mb-4">
@@ -530,7 +635,7 @@ templ Portal(vm PortalVM) {
 					</div>
 
 					<!-- Placeholder for other nav sections -->
-				<div x-show="!['dashboard', 'members', 'plans', 'audit'].includes(activeNav)" x-cloak>
+				<div x-show="!['dashboard', 'members', 'plans', 'locations', 'audit'].includes(activeNav)" x-cloak>
 					<div class="bg-white rounded-xl shadow-sm p-12 text-center">
 						<span class="material-icons-outlined text-6xl text-slate-300 mb-4">construction</span>
 						<h3 class="text-xl font-medium text-slate-600 mb-2">Coming Soon</h3>
