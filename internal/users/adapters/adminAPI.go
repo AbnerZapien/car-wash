@@ -33,6 +33,7 @@ func (a *AdminAPIService) RegisterRoutes() {
 	g.POST("/plans", a.CreatePlan)
 	g.PUT("/plans/:id", a.UpdatePlan)
 	g.DELETE("/plans/:id", a.DeletePlan)
+	g.POST("/plans/:id/reassign", a.ReassignPlan)
 	g.GET("/audit", a.ListAudit)
 	g.GET("/stats", a.GetStats)
 }
@@ -387,4 +388,53 @@ func (a *AdminAPIService) GetStats(c echo.Context) error {
 		Days:              days,
 	}
 	return c.JSON(http.StatusOK, out)
+}
+
+type reassignReq struct {
+	ToPlanID string `json:"toPlanId"`
+}
+
+func (a *AdminAPIService) ReassignPlan(c echo.Context) error {
+	fromPlan := strings.TrimSpace(c.Param("id"))
+	if fromPlan == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing plan id"})
+	}
+
+	var req reassignReq
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid json"})
+	}
+	toPlan := strings.TrimSpace(req.ToPlanID)
+	if toPlan == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "toPlanId required"})
+	}
+	if toPlan == fromPlan {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "toPlanId must be different"})
+	}
+
+	// Validate both plans exist
+	var exists int
+	qExist := a.db.Rebind(`SELECT 1 FROM plans WHERE id = ? LIMIT 1`)
+	if err := a.db.Get(&exists, qExist, fromPlan); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid source plan"})
+	}
+	if err := a.db.Get(&exists, qExist, toPlan); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid toPlanId"})
+	}
+
+	// Move ACTIVE subscriptions from fromPlan -> toPlan
+	q := a.db.Rebind(`UPDATE subscriptions SET plan_id = ? WHERE plan_id = ? AND status = 'active'`)
+	res, err := a.db.Exec(q, toPlan, fromPlan)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	moved, _ := res.RowsAffected()
+
+	a.audit(c, "plan.reassign", "plan", fromPlan, map[string]any{
+		"toPlanId": toPlan,
+		"moved":    moved,
+	})
+
+	return c.JSON(http.StatusOK, map[string]any{"ok": true, "moved": moved})
 }
