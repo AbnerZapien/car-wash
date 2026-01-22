@@ -154,11 +154,30 @@ templ Portal(vm PortalVM) {
 						</div>
 					</div>
 					<div class="flex items-center justify-between md:justify-end space-x-4">
-						<div class="flex items-center space-x-1 md:space-x-2 cursor-pointer">
-							<span class="material-icons-outlined text-slate-400">location_on</span>
-							<span class="text-slate-800 font-medium hidden sm:inline" x-text="locationName"></span>
-							<span class="material-icons-outlined text-slate-400">expand_more</span>
-						</div>
+						
+							<div class="relative">
+								<button class="flex items-center space-x-1 md:space-x-2 cursor-pointer"
+									@click="locationMenuOpen = !locationMenuOpen">
+									<span class="material-icons-outlined text-slate-400">location_on</span>
+									<span class="text-slate-800 font-medium hidden sm:inline" x-text="locationName"></span>
+									<span class="material-icons-outlined text-slate-400">expand_more</span>
+								</button>
+
+								<div x-show="locationMenuOpen" x-cloak x-transition @click.outside="locationMenuOpen=false"
+									class="absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg border border-slate-200 overflow-hidden z-50">
+									<button class="w-full text-left px-4 py-3 hover:bg-slate-50"
+										:class="selectedLocationId==='all' ? 'bg-slate-50 font-semibold' : ''"
+										@click="setLocation('all')">All Locations</button>
+									<template x-for="l in locations" :key="l.id">
+										<button class="w-full text-left px-4 py-3 hover:bg-slate-50"
+											:class="selectedLocationId===l.id ? 'bg-slate-50 font-semibold' : ''"
+											@click="setLocation(l.id)">
+											<span x-text="l.name"></span>
+										</button>
+									</template>
+								</div>
+							</div>
+
 						<div class="flex items-center space-x-1 md:space-x-2">
 							<span class="material-icons-outlined text-slate-400 sm:hidden">person</span>
 							<span class="text-slate-800 hidden sm:inline">admin@hedgestone.com</span>
@@ -644,153 +663,6 @@ templ Portal(vm PortalVM) {
 				</div>
 			</main>
 		</div>
-		<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				setTimeout(initCharts, 500);
-			});
-
-			function initCharts() {
-				// Active Members Chart
-				const activeMembersCtx = document.getElementById('activeMembersChart');
-				if (activeMembersCtx) {
-					new Chart(activeMembersCtx.getContext('2d'), {
-						type: 'line',
-						data: {
-							labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-							datasets: [{
-								label: 'Active Members',
-								data: [200, 215, 230, 225, 240, 250, 237],
-								borderColor: '#4F46E5',
-								tension: 0.4,
-								fill: false,
-								pointRadius: 0
-							}]
-						},
-						options: {
-							responsive: true,
-							maintainAspectRatio: false,
-							scales: { x: { display: false }, y: { display: false } },
-							plugins: { legend: { display: false } }
-						}
-					});
-				}
-
-				// Usage Rate Chart (Gauge)
-				const usageRateCtx = document.getElementById('usageRateChart');
-				if (usageRateCtx) {
-					new Chart(usageRateCtx.getContext('2d'), {
-						type: 'doughnut',
-						data: {
-							datasets: [{
-								data: [0.18, 0.82],
-								backgroundColor: ['#4F46E5', '#E2E8F0'],
-								borderWidth: 0
-							}]
-						},
-						options: {
-							responsive: true,
-							maintainAspectRatio: false,
-							cutout: '70%',
-							rotation: -1.25 * Math.PI,
-							circumference: Math.PI,
-							plugins: { legend: { display: false }, tooltip: { enabled: false } }
-						}
-					});
-				}
-
-				// Projection Chart
-				const projectionCtx = document.getElementById('projectionChart');
-				if (projectionCtx) {
-					new Chart(projectionCtx.getContext('2d'), {
-						type: 'bar',
-						data: {
-							labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-							datasets: [{
-								label: 'Projection ($)',
-								data: [3000, 3500, 4000, 3128],
-								backgroundColor: '#4F46E5',
-								borderRadius: 5
-							}]
-						},
-						options: {
-							responsive: true,
-							maintainAspectRatio: false,
-							scales: { x: { display: false }, y: { display: false } },
-							plugins: { legend: { display: false } }
-						}
-					});
-				}
-
-				// Demographics Chart
-				const demographicsCtx = document.getElementById('memberDemographicsChart');
-				if (demographicsCtx) {
-					new Chart(demographicsCtx.getContext('2d'), {
-						type: 'pie',
-						data: {
-							labels: ['18-24', '25-34', '35-44', '45-54', '55+'],
-							datasets: [{
-								data: [15, 35, 25, 15, 10],
-								backgroundColor: ['#4F46E5', '#7C3AED', '#EC4899', '#F59E0B', '#10B981'],
-								hoverOffset: 4
-							}]
-						},
-						options: {
-							responsive: true,
-							maintainAspectRatio: false,
-							plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } }
-						}
-					});
-				}
-
-				// Usage Heatmap (Bar chart simulation)
-				const heatmapCtx = document.getElementById('usageHeatmapChart');
-				if (heatmapCtx) {
-					new Chart(heatmapCtx.getContext('2d'), {
-						type: 'bar',
-						data: {
-							labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-							datasets: [
-								{ label: 'Morning', data: [12, 19, 15, 17, 14, 22, 25], backgroundColor: '#C7D2FE' },
-								{ label: 'Afternoon', data: [18, 25, 22, 20, 24, 30, 28], backgroundColor: '#818CF8' },
-								{ label: 'Evening', data: [8, 12, 10, 15, 20, 18, 12], backgroundColor: '#4F46E5' }
-							]
-						},
-						options: {
-							responsive: true,
-							maintainAspectRatio: false,
-							scales: { x: { stacked: true }, y: { stacked: true, display: false } },
-							plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
-						}
-					});
-				}
-
-				// Retention Trend
-				const retentionCtx = document.getElementById('retentionTrendChart');
-				if (retentionCtx) {
-					new Chart(retentionCtx.getContext('2d'), {
-						type: 'line',
-						data: {
-							labels: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`),
-							datasets: [{
-								label: 'Retention (%)',
-								data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 10) + 90),
-								borderColor: '#4F46E5',
-								tension: 0.3,
-								fill: false
-							}]
-						},
-						options: {
-							responsive: true,
-							maintainAspectRatio: false,
-							scales: {
-								x: { display: false },
-								y: { min: 85, max: 100, grid: { color: 'rgba(226, 232, 240, 0.5)' } }
-							},
-							plugins: { legend: { display: false } }
-						}
-					});
-				}
-			}
-		</script>
+		
 	}
 }
