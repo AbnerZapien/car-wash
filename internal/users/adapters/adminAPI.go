@@ -172,6 +172,35 @@ type AdminMember struct {
 }
 
 func (a *AdminAPIService) ListMembers(c echo.Context) error {
+	// Optional filters
+	days := 30
+	if ds := strings.TrimSpace(c.QueryParam("days")); ds != "" {
+		if v, err := strconv.Atoi(ds); err == nil && v > 0 && v <= 365 {
+			days = v
+		}
+	}
+	locationID := strings.TrimSpace(c.QueryParam("locationId"))
+	if locationID == "all" {
+		locationID = ""
+	}
+
+	filterJoin := ""
+	filterWhere := ""
+	args := []any{}
+
+	// Filter members by "has scan at location in last N days"
+	if locationID != "" {
+		filterJoin = `
+		JOIN (
+			SELECT DISTINCT user_id
+			FROM wash_events
+			WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')
+			  AND location_id = ?
+		) lu ON lu.user_id = u.id
+		`
+		args = append(args, days, locationID)
+	}
+
 	q := a.db.Rebind(`
 		SELECT
 			u.id, u.username, u.email, u.first_name, u.last_name, u.avatar_url,
@@ -182,6 +211,7 @@ func (a *AdminAPIService) ListMembers(c echo.Context) error {
 			COALESCE(s.next_billing_date,'') as next_billing_date,
 			COALESCE(w.cnt,0) as wash_count
 		FROM users u
+		` + filterJoin + `
 		LEFT JOIN subscriptions s ON s.user_id = u.id AND s.status = 'active'
 		LEFT JOIN plans p ON p.id = s.plan_id
 		LEFT JOIN (
@@ -189,14 +219,15 @@ func (a *AdminAPIService) ListMembers(c echo.Context) error {
 			FROM wash_events
 			GROUP BY user_id
 		) w ON w.user_id = u.id
+		` + filterWhere + `
 		ORDER BY u.id DESC
 	`)
 
 	var members []AdminMember
-	if err := a.db.Select(&members, q); err != nil {
+	if err := a.db.Select(&members, q, args...); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, map[string]any{"members": members})
+	return c.JSON(http.StatusOK, map[string]any{"members": members, "days": days, "locationId": locationID})
 }
 
 func (a *AdminAPIService) DeleteUser(c echo.Context) error {
