@@ -117,6 +117,15 @@ func (c *Configurator) AddPublicWeb() *Configurator {
 	return c
 }
 
+func (c *Configurator) AddLocationsAPI() *Configurator {
+	db, err := usersAdapter.ConnectDB()
+	if err != nil {
+		panic(err)
+	}
+	usersAdapter.NewLocationsAPIService(c.v1).WithDB(db).RegisterRoutes()
+	return c
+}
+
 func (c *Configurator) Start() {
 	port := os.Getenv("GO_PORT")
 	c.Echo.Logger.Fatal(c.Echo.Start(":" + port))
