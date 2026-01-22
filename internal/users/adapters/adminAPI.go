@@ -40,6 +40,7 @@ func (a *AdminAPIService) RegisterRoutes() {
 	g.POST("/plans/:id/reassign", a.ReassignPlan)
 	g.GET("/audit", a.ListAudit)
 	g.GET("/stats", a.GetStats)
+	g.GET("/charts", a.GetCharts)
 }
 
 // Admin rule: user role must be "admin"
@@ -533,4 +534,209 @@ func (a *AdminAPIService) DeleteLocation(c echo.Context) error {
 
 	a.audit(c, "location.delete", "location", locID, map[string]any{})
 	return c.JSON(http.StatusOK, map[string]any{"ok": true})
+}
+
+type AdminCharts struct {
+	Days int `json:"days"`
+
+	Labels             []string  `json:"labels"`
+	ScansPerDay        []int     `json:"scansPerDay"`
+	UniqueUsersPerDay  []int     `json:"uniqueUsersPerDay"`
+	RetentionPctPerDay []float64 `json:"retentionPctPerDay"`
+
+	ActiveMemberCount int     `json:"activeMemberCount"`
+	AverageUsageRate  float64 `json:"averageUsageRate"`
+	MonthlyProjection float64 `json:"monthlyProjection"`
+
+	PlanMixLabels []string `json:"planMixLabels"`
+	PlanMixCounts []int    `json:"planMixCounts"`
+
+	HeatmapLabels    []string `json:"heatmapLabels"` // Mon..Sun
+	HeatmapMorning   []int    `json:"heatmapMorning"`
+	HeatmapAfternoon []int    `json:"heatmapAfternoon"`
+	HeatmapEvening   []int    `json:"heatmapEvening"`
+}
+
+func (a *AdminAPIService) GetCharts(c echo.Context) error {
+	days := 30
+	if ds := strings.TrimSpace(c.QueryParam("days")); ds != "" {
+		if v, err := strconv.Atoi(ds); err == nil && v > 0 && v <= 365 {
+			days = v
+		}
+	}
+
+	// Active members (active subscriptions)
+	var active int
+	q1 := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
+	if err := a.db.Get(&active, q1); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Monthly projection (sum plan price cents for active subs)
+	var cents int
+	q2 := a.db.Rebind(`
+		SELECT COALESCE(SUM(p.price_cents), 0)
+		FROM subscriptions s
+		JOIN plans p ON p.id = s.plan_id
+		WHERE s.status = 'active'
+	`)
+	if err := a.db.Get(&cents, q2); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	monthlyProjection := float64(cents) / 100.0
+
+	// Daily scans + unique users for last N days (include today)
+	type dayRow struct {
+		Day   string `db:"day"`
+		Scans int    `db:"scans"`
+		Users int    `db:"users"`
+	}
+	qDaily := a.db.Rebind(`
+		WITH days AS (
+			SELECT generate_series(
+				current_date - ((?::int - 1) * interval '1 day'),
+				current_date,
+				interval '1 day'
+			)::date AS day
+		),
+		agg AS (
+			SELECT
+				date(scanned_at) AS day,
+				COUNT(*) AS scans,
+				COUNT(DISTINCT user_id) AS users
+			FROM wash_events
+			WHERE scanned_at >= NOW() - (?::int * interval '1 day')
+			GROUP BY 1
+		)
+		SELECT
+			d.day::text AS day,
+			COALESCE(a.scans, 0) AS scans,
+			COALESCE(a.users, 0) AS users
+		FROM days d
+		LEFT JOIN agg a ON a.day = d.day
+		ORDER BY d.day ASC
+	`)
+	var rows []dayRow
+	if err := a.db.Select(&rows, qDaily, days, days); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	labels := make([]string, 0, len(rows))
+	scans := make([]int, 0, len(rows))
+	users := make([]int, 0, len(rows))
+	ret := make([]float64, 0, len(rows))
+
+	totalScans := 0
+	for _, r := range rows {
+		labels = append(labels, r.Day)
+		scans = append(scans, r.Scans)
+		users = append(users, r.Users)
+		totalScans += r.Scans
+		if active > 0 {
+			ret = append(ret, (float64(r.Users)/float64(active))*100.0)
+		} else {
+			ret = append(ret, 0)
+		}
+	}
+
+	avgUsage := 0.0
+	if active > 0 {
+		avgUsage = float64(totalScans) / float64(active)
+	}
+
+	// Plan mix (active subscriptions by plan)
+	type mixRow struct {
+		Name string `db:"name"`
+		Cnt  int    `db:"cnt"`
+	}
+	qMix := a.db.Rebind(`
+		SELECT p.name, COUNT(*) AS cnt
+		FROM subscriptions s
+		JOIN plans p ON p.id = s.plan_id
+		WHERE s.status = 'active'
+		GROUP BY p.name
+		ORDER BY cnt DESC
+	`)
+	var mix []mixRow
+	_ = a.db.Select(&mix, qMix)
+
+	planLabels := []string{}
+	planCounts := []int{}
+	for _, r := range mix {
+		planLabels = append(planLabels, r.Name)
+		planCounts = append(planCounts, r.Cnt)
+	}
+
+	// Heatmap (last 7 days): Mon..Sun and Morning/Afternoon/Evening counts
+	heatLabels := []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
+	morn := make([]int, 7)
+	aft := make([]int, 7)
+	eve := make([]int, 7)
+
+	type heatRow struct {
+		Dow     int    `db:"dow"`
+		Segment string `db:"segment"`
+		Cnt     int    `db:"cnt"`
+	}
+	qHeat := a.db.Rebind(`
+		SELECT
+			(EXTRACT(DOW FROM scanned_at)::int) AS dow,
+			CASE
+				WHEN EXTRACT(HOUR FROM scanned_at) < 12 THEN 'Morning'
+				WHEN EXTRACT(HOUR FROM scanned_at) < 18 THEN 'Afternoon'
+				ELSE 'Evening'
+			END AS segment,
+			COUNT(*) AS cnt
+		FROM wash_events
+		WHERE scanned_at >= NOW() - (7 * interval '1 day')
+		GROUP BY 1, 2
+	`)
+	var heat []heatRow
+	_ = a.db.Select(&heat, qHeat)
+
+	// Postgres DOW: 0=Sun..6=Sat. We want 0=Mon..6=Sun
+	mapDow := func(pgDow int) int {
+		if pgDow == 0 {
+			return 6
+		}
+		return pgDow - 1
+	}
+
+	for _, r := range heat {
+		i := mapDow(r.Dow)
+		if i < 0 || i > 6 {
+			continue
+		}
+		switch r.Segment {
+		case "Morning":
+			morn[i] = r.Cnt
+		case "Afternoon":
+			aft[i] = r.Cnt
+		default:
+			eve[i] = r.Cnt
+		}
+	}
+
+	out := AdminCharts{
+		Days: days,
+
+		Labels:             labels,
+		ScansPerDay:        scans,
+		UniqueUsersPerDay:  users,
+		RetentionPctPerDay: ret,
+
+		ActiveMemberCount: active,
+		AverageUsageRate:  avgUsage,
+		MonthlyProjection: monthlyProjection,
+
+		PlanMixLabels: planLabels,
+		PlanMixCounts: planCounts,
+
+		HeatmapLabels:    heatLabels,
+		HeatmapMorning:   morn,
+		HeatmapAfternoon: aft,
+		HeatmapEvening:   eve,
+	}
+
+	return c.JSON(http.StatusOK, out)
 }
