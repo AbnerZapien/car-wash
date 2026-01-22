@@ -20,6 +20,12 @@ type AdminPlan = {
   features?: string[];
 };
 
+interface AdminLocation {
+  id: string;
+  name: string;
+  address: string;
+}
+
 export function adminStore() {
   return {
     // portal UI expects these
@@ -66,6 +72,15 @@ export function adminStore() {
 
     plansLoading: false,
     plansError: null as string | null,
+    // Locations
+    locations: [] as AdminLocation[],
+    locationsLoading: false,
+    locationsError: null as string | null,
+    locationModalOpen: false,
+    locationEditingId: null as string | null,
+    locationSaving: false,
+    locationForm: { id: '', name: '', address: '' } as any,
+
     planModalOpen: false,
     // Reassign subscribers (blocked plan delete)
     reassignOpen: false,
@@ -95,8 +110,9 @@ export function adminStore() {
       this.activeNav = id;
       if (id === 'members') this.refresh();
       if (id === 'plans') this.refreshPlans();
+      if (id === 'locations') this.refreshLocations();
       if (id === 'audit') this.refreshAudit(100);
-    },
+},
 
     search(q: string) {
       this.searchQuery = q;
@@ -185,7 +201,106 @@ export function adminStore() {
       }
     },
 
-    // --- Plans ---
+    
+    // --- Locations ---
+    async refreshLocations() {
+      this.locationsLoading = true;
+      this.locationsError = null;
+      try {
+        const res = await fetch('/api/v1/admin/locations', { credentials: 'include' });
+        const j = await res.json().catch(() => ({} as any));
+        if (!res.ok) throw new Error(j?.error || 'Failed to load locations');
+        this.locations = j?.locations || [];
+      } catch (e: any) {
+        this.locationsError = e?.message ?? 'Failed to load locations';
+        this.toast(this.locationsError, 'error');
+      } finally {
+        this.locationsLoading = false;
+      }
+    },
+
+    openAddLocation() {
+      this.locationEditingId = null;
+      this.locationForm = { id: '', name: '', address: '' };
+      this.locationModalOpen = true;
+      this.locationsError = null;
+    },
+
+    openEditLocation(l: AdminLocation) {
+      this.locationEditingId = l.id;
+      this.locationForm = { id: l.id, name: l.name, address: l.address || '' };
+      this.locationModalOpen = true;
+      this.locationsError = null;
+    },
+
+    closeLocationModal() {
+      this.locationModalOpen = false;
+      this.locationSaving = false;
+    },
+
+    async saveLocation() {
+      this.locationSaving = true;
+      this.locationsError = null;
+      try {
+        const id = (this.locationForm.id || '').trim();
+        const name = (this.locationForm.name || '').trim();
+        const address = (this.locationForm.address || '').trim();
+        if (!name) throw new Error('Name is required');
+        if (!this.locationEditingId && !id) throw new Error('ID is required for new locations');
+
+        const payload = { id, name, address };
+
+        if (this.locationEditingId) {
+          const res = await fetch(`/api/v1/admin/locations/${encodeURIComponent(this.locationEditingId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+          });
+          const j = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(j?.error || 'Update failed');
+        } else {
+          const res = await fetch('/api/v1/admin/locations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+          });
+          const j = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(j?.error || 'Create failed');
+        }
+
+        this.closeLocationModal();
+        await this.refreshLocations();
+        this.toast('Location saved (logged to Audit)', 'success');
+      } catch (e: any) {
+        this.locationsError = e?.message ?? 'Save failed';
+        this.locationSaving = false;
+        this.toast(this.locationsError, 'error');
+      }
+    },
+
+    async deleteLocation(id: string) {
+      if (!confirm('Delete this location?')) return;
+      try {
+        const res = await fetch(`/api/v1/admin/locations/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        const j = await res.json().catch(() => ({} as any));
+        if (!res.ok) {
+          this.toast(j?.error || 'Delete failed', 'error');
+          return;
+        }
+        this.locations = (this.locations || []).filter((l: any) => l.id !== id);
+        this.toast('Location deleted (logged to Audit)', 'success');
+        await this.refreshLocations();
+      } catch (e: any) {
+        this.toast(e?.message ?? 'Delete failed', 'error');
+      }
+    },
+
+// --- Plans ---
     async refreshPlans() {
       this.plansLoading = true;
       this.plansError = null;
@@ -256,11 +371,21 @@ export function adminStore() {
     openReassign(fromId: string, autoDelete: boolean = true) {
       this.reassignFromId = fromId;
       this.reassignAutoDelete = autoDelete;
+      this.planModalOpen = false;
 
       // default target = first different plan
       const other = (this.plans || []).find((p: any) => p.id !== fromId);
       this.reassignToId = other ? other.id : '';
       this.reassignOpen = true;
+      // Ensure the modal node is Alpine-bound immediately (prevents needing another click)
+      try {
+        const A: any = (window as any).Alpine;
+        if (A?.initTree) A.initTree(document.body);
+      } catch {}
+
+      // Force Alpine to flush DOM updates immediately
+      queueMicrotask(() => { this.reassignOpen = true; });
+      requestAnimationFrame(() => { this.reassignOpen = true; });
       this.reassignLoading = false;
     },
 
@@ -374,24 +499,38 @@ export function adminStore() {
 
     async deletePlan(id: string) {
       if (!confirm('Delete this plan?')) return;
+
       try {
         const res = await fetch(`/api/v1/admin/plans/${encodeURIComponent(id)}`, {
           method: 'DELETE',
           credentials: 'include',
         });
         const j = await res.json().catch(() => ({} as any));
+
         if (!res.ok) {
-          const msg = j?.error || j?.message || 'Delete failed';
+          const msg = String(j?.error || j?.message || 'Delete failed');
+
+          // Any 400 here is our "blocked delete" case (subscriptions exist)
+          if (res.status === 400) {
+            this.toast('Plan has subscribers. Reassign them before deleting.', 'info');
+
+            // Open modal immediately (don’t wait on network)
+            this.openReassign(id, true);
+
+            // Refresh plans in background so dropdown is populated/updated
+            this.refreshPlans().catch(() => {});
+
+            return;
+          }
+
           this.toast(msg, 'error');
           return;
         }
 
-        // Optimistic UI update (so it disappears immediately)
+        // Optimistic UI update
         this.plans = (this.plans || []).filter((p: any) => p.id !== id);
 
         this.toast('Plan deleted (logged to Audit)', 'success');
-
-        // Re-sync from DB (keeps ordering & confirms)
         await this.refreshPlans();
       } catch (e: any) {
         this.toast(e?.message ?? 'Delete failed', 'error');
