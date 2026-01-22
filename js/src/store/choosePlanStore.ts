@@ -56,7 +56,12 @@ export function choosePlanStore() {
       return `$${((p.priceCents || 0) / 100).toFixed(2)}/mo`;
     },
 
-    async save() {
+    
+    formatPrice(cents: number) {
+      return `$${((cents || 0) / 100).toFixed(2)}/mo`;
+    },
+
+async save() {
       if (!this.selectedPlanId) {
         this.error = 'Select a plan first';
         return;
