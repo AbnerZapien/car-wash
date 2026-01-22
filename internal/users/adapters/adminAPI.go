@@ -360,8 +360,8 @@ func (a *AdminAPIService) GetStats(c echo.Context) error {
 	}
 
 	// Active members:
-	// - No filter: count all active subscriptions
-	// - Filter: count active subscriptions whose users scanned at that location in window
+	// - No filter: all active subscriptions
+	// - Filter: active subs whose users scanned at this location in window
 	var active int
 	if locationID == "" {
 		q1 := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
@@ -386,7 +386,7 @@ func (a *AdminAPIService) GetStats(c echo.Context) error {
 		}
 	}
 
-	// Scans (location-filtered if provided)
+	// Scans in window, filtered by location if provided
 	var scans int
 	if locationID == "" {
 		q2 := a.db.Rebind(`SELECT COUNT(1) FROM wash_events WHERE scanned_at >= NOW() - (? * INTERVAL '1 day')`)
@@ -410,7 +410,7 @@ func (a *AdminAPIService) GetStats(c echo.Context) error {
 		avg = float64(scans) / float64(active)
 	}
 
-	// Monthly projection
+	// Monthly projection: sum plan price for active subs (filtered users if location specified)
 	var cents int
 	if locationID == "" {
 		q3 := a.db.Rebind(`
@@ -626,7 +626,7 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		locationID = ""
 	}
 
-	// Active members & projection: scope to users who scanned at this location in window (if filtered)
+	// Active members: if filtering, scope to users who scanned at that location in window.
 	var active int
 	if locationID == "" {
 		q := a.db.Rebind(`SELECT COUNT(1) FROM subscriptions WHERE status = 'active'`)
@@ -651,6 +651,7 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		}
 	}
 
+	// Monthly projection cents (filtered users if location specified)
 	var cents int
 	if locationID == "" {
 		q := a.db.Rebind(`
@@ -681,7 +682,7 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		}
 	}
 
-	// Daily series
+	// Daily series (location-filtered if provided)
 	type dayRow struct {
 		Day   string `db:"day"`
 		Scans int    `db:"scans"`
@@ -751,7 +752,7 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		avgUsage = float64(totalScans) / float64(active)
 	}
 
-	// Plan mix
+	// Plan mix (filtered users if location specified)
 	type mixRow struct {
 		Name string `db:"name"`
 		Cnt  int    `db:"cnt"`
@@ -793,7 +794,7 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 		planCounts = append(planCounts, r.Cnt)
 	}
 
-	// Heatmap last 7 days
+	// Heatmap (last 7 days), location-filtered if provided
 	heatLabels := []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
 	morn := make([]int, 7)
 	aft := make([]int, 7)
