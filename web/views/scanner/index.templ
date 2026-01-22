@@ -188,8 +188,10 @@ templ Scanner(vm ScannerVM) {
 </div>
 <h2 class="text-2xl font-bold text-slate-800 mb-2" x-text="scanAllowed ? 'Access Granted!' : 'Access Denied'"></h2>
 <p class="text-slate-600 mb-1" x-show="scanAllowed">Welcome back, <span x-text="scannedUser?.name"></span>.</p>
-<p class="text-slate-600 mb-6" x-show="scanAllowed">Plan: <span x-text="scannedUser?.plan"></span></p>
-<p class="text-slate-600 mb-6" x-show="!scanAllowed">Reason: <span x-text="scanReason"></span></p>
+<p class="text-slate-600 mb-2" x-show="scanAllowed">Plan: <span x-text="scannedUser?.plan"></span></p>
+<p class="text-slate-600 mb-6">Location: <span class="font-medium" x-text="selectedLocationName"></span></p>
+<p class="text-slate-600 mb-2" x-show="!scanAllowed">Reason: <span x-text="scanReason"></span></p>
+<p class="text-slate-600 mb-6">Location: <span class="font-medium" x-text="selectedLocationName"></span></p>
 
 					<button
 						@click="closeModal()"
