@@ -41,6 +41,40 @@ templ Portal(vm PortalVM) {
 					</div>
 				</div>
 
+
+			<!-- Reassign subscribers modal -->
+			<div x-show="reassignOpen" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+				<div class="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="text-lg font-bold text-slate-800">Reassign subscribers</h3>
+						<button class="text-slate-500 hover:text-slate-800" @click="closeReassign()">✕</button>
+					</div>
+
+					<p class="text-slate-600 text-sm mb-4">
+						This plan has active subscribers. Move them to another plan before deleting
+						<span class="font-semibold" x-text="reassignFromId"></span>.
+					</p>
+
+					<div>
+						<label class="text-sm font-medium text-slate-700">Move subscribers to</label>
+						<select class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" x-model="reassignToId">
+							<template x-for="p in (plans || []).filter(p => p.id !== reassignFromId)" :key="p.id">
+								<option :value="p.id" x-text="`${p.name} (${p.id})`"></option>
+							</template>
+						</select>
+					</div>
+
+					<div class="mt-6 flex justify-end gap-2">
+						<button class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300" @click="closeReassign()">Cancel</button>
+						<button class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
+							:disabled="reassignLoading"
+							@click="confirmReassign()">
+							<span x-text="reassignLoading ? 'Reassigning…' : 'Reassign & Delete'"></span>
+						</button>
+					</div>
+				</div>
+			</div>
+
 			<!-- Mobile Backdrop -->
 			<div
 				x-show="sidebarOpen"
@@ -440,45 +474,6 @@ templ Portal(vm PortalVM) {
 								</div>
 							</div>
 
-						<!-- Reassign subscribers modal -->
-						<div x-show="reassignOpen" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-							<div class="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
-								<div class="flex items-center justify-between mb-4">
-									<h3 class="text-lg font-bold text-slate-800">Reassign subscribers</h3>
-									<button class="text-slate-500 hover:text-slate-800" @click="closeReassign()">✕</button>
-								</div>
-
-								<p class="text-slate-600 text-sm mb-4">
-									This plan has active subscribers. Move them to another plan before deleting
-									<span class="font-semibold" x-text="reassignFromId"></span>.
-								</p>
-
-								<div class="grid grid-cols-1 gap-4">
-									<div>
-										<label class="text-sm font-medium text-slate-700">Move subscribers to</label>
-										<select class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-											x-model="reassignToId">
-											<template x-for="p in plans.filter(p => p.id !== reassignFromId)" :key="p.id">
-												<option :value="p.id" x-text="`${p.name} (${p.id})`"></option>
-											</template>
-										</select>
-										<p class="text-xs text-slate-500 mt-2">
-											This will update active subscriptions from <span class="font-medium" x-text="reassignFromId"></span>
-											to <span class="font-medium" x-text="reassignToId"></span>.
-										</p>
-									</div>
-								</div>
-
-								<div class="mt-6 flex justify-end gap-2">
-									<button class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300" @click="closeReassign()">Cancel</button>
-									<button class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
-										:disabled="reassignLoading"
-										@click="confirmReassign()">
-										<span x-text="reassignLoading ? 'Reassigning…' : 'Reassign & Delete'"></span>
-									</button>
-								</div>
-							</div>
-						</div>
 
 						</div>
 
