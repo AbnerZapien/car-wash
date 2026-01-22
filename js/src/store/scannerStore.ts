@@ -18,6 +18,8 @@ type ScanAPIResponse = {
 
 type CameraInfo = { id: string; label: string };
 
+type LocationInfo = { id: string; name: string; address?: string };
+
 export function scannerStore() {
   let qr: Html5Qrcode | null = null;
   let starting = false;
@@ -50,7 +52,12 @@ export function scannerStore() {
     scanAllowed: true as boolean | null,
     scanReason: '' as string,
 
-    locationId: 'loc-1',
+    locationId: '',
+
+    // Locations
+    locations: [] as LocationInfo[],
+    locationLoading: false,
+
 
     // NEW: camera switching
     cameras: [] as CameraInfo[],
@@ -62,6 +69,13 @@ export function scannerStore() {
 
       // Preload cameras list (labels may be empty until permission)
       try {
+        if (!this.locationId) {
+          this.scanAllowed = false;
+          this.scanReason = 'Please select a location before scanning.';
+          this.showSuccessModal = true;
+          return;
+        }
+
         const cams = await Html5Qrcode.getCameras();
         this.cameras = (cams || []).map((c) => ({ id: c.id, label: c.label || '' }));
         if (!this.activeCameraId && this.cameras.length) {
@@ -71,10 +85,32 @@ export function scannerStore() {
         // ignore
       }
 
+      await this.loadLocations();
+
       await this.startScan();
     },
 
-    async refreshCameras() {
+    
+    async loadLocations() {
+      this.locationLoading = true;
+      try {
+        const res = await fetch('/api/v1/locations', { credentials: 'include' });
+        const j = await res.json().catch(() => ({} as any));
+        const locs = (j.locations || []) as LocationInfo[];
+        this.locations = locs;
+
+        // Default to first location if none selected
+        if (!this.locationId && locs.length) {
+          this.locationId = locs[0].id;
+        }
+      } catch {
+        // ignore (UI will show empty list)
+      } finally {
+        this.locationLoading = false;
+      }
+    },
+
+async refreshCameras() {
       try {
         const cams = await Html5Qrcode.getCameras();
         this.cameras = (cams || []).map((c) => ({ id: c.id, label: c.label || '' }));
