@@ -1,31 +1,40 @@
+type Plan = { id: string; name: string; priceCents: number; featuresJson: string; features?: string[] };
+
 export function choosePlanStore() {
   return {
-    plans: [] as any[],
     loading: false,
+    saving: false,
     error: null as string | null,
 
+    plans: [] as Plan[],
+    currentPlanId: '' as string,
+    selectedPlanId: '' as string,
+
     async init() {
-      this.error = null;
       this.loading = true;
-
+      this.error = null;
       try {
-        // If already has active subscription, go to dashboard
-        const subRes = await fetch('/api/v1/me/subscription', { credentials: 'include' });
-        if (subRes.status === 401) throw new Error('Please sign in again.');
-        const sub = await subRes.json();
-        if (sub?.active) {
-          window.location.href = '/dashboard';
-          return;
-        }
+        const [plansRes, subRes] = await Promise.all([
+          fetch('/api/v1/plans', { credentials: 'include' }),
+          fetch('/api/v1/me/subscription', { credentials: 'include' }),
+        ]);
 
-        const res = await fetch('/api/v1/plans', { credentials: 'include' });
-        const data = await res.json();
+        const plansJ = await plansRes.json().catch(() => ({} as any));
+        const subJ = await subRes.json().catch(() => ({} as any));
 
-        this.plans = (data.plans || []).map((p: any) => {
+        const rawPlans = (plansJ.plans || []) as any[];
+        this.plans = rawPlans.map((p) => {
           let features: string[] = [];
           try { features = JSON.parse(p.featuresJson || '[]'); } catch {}
           return { ...p, features };
         });
+
+        if (subJ?.active && subJ?.subscription?.planId) {
+          this.currentPlanId = String(subJ.subscription.planId);
+          this.selectedPlanId = this.currentPlanId;
+        } else if (this.plans.length) {
+          this.selectedPlanId = this.plans[0].id;
+        }
       } catch (e: any) {
         this.error = e?.message ?? 'Failed to load plans';
       } finally {
@@ -33,27 +42,42 @@ export function choosePlanStore() {
       }
     },
 
-    formatPrice(priceCents: number) {
-      const dollars = (priceCents || 0) / 100;
-      return `$${dollars.toFixed(2)}/month`;
+    selectPlan(id: string) {
+      this.selectedPlanId = id;
     },
 
-    async selectPlan(planId: string) {
-      this.loading = true;
-      this.error = null;
+    get selectedPlan(): Plan | null {
+      return this.plans.find((p) => p.id === this.selectedPlanId) || null;
+    },
 
+    get priceLabel(): string {
+      const p = this.selectedPlan;
+      if (!p) return '';
+      return `$${((p.priceCents || 0) / 100).toFixed(2)}/mo`;
+    },
+
+    async save() {
+      if (!this.selectedPlanId) {
+        this.error = 'Select a plan first';
+        return;
+      }
+      this.saving = true;
+      this.error = null;
       try {
         const res = await fetch('/api/v1/me/subscription', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ planId }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planId: this.selectedPlanId }),
         });
-        if (!res.ok) throw new Error('Failed to activate plan');
-        window.location.href = '/dashboard';
+        const j = await res.json().catch(() => ({} as any));
+        if (!res.ok) throw new Error(j?.error || 'Failed to update subscription');
+
+        window.location.assign('/account');
       } catch (e: any) {
-        this.error = e?.message ?? 'Failed to activate plan';
-        this.loading = false;
+        this.error = e?.message ?? 'Failed to update subscription';
+      } finally {
+        this.saving = false;
       }
     },
   };
