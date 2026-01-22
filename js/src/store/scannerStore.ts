@@ -87,6 +87,8 @@ export function scannerStore() {
 
       await this.loadLocations();
 
+      await this.loadLocations();
+
       await this.startScan();
     },
 
