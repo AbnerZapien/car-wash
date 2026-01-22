@@ -33,6 +33,9 @@ export function adminStore() {
     activeNav: 'dashboard',
     searchQuery: '',
     locationName: 'All Locations',
+    selectedLocationId: 'all' as string,
+    locationMenuOpen: false,
+
     dateRangeLabel: 'Last 30 days',
 
     // Charts
@@ -148,7 +151,7 @@ export function adminStore() {
 
     async refreshStats(days: number = 30) {
       try {
-        const res = await fetch(`/api/v1/admin/stats?days=${days}`, { credentials: 'include' });
+        const res = await fetch(`/api/v1/admin/stats?days=${days}&locationId=${encodeURIComponent(this.selectedLocationId || 'all')}`, { credentials: 'include' });
         const j = await res.json().catch(() => null);
         if (!res.ok || !j) return;
 
@@ -160,6 +163,22 @@ export function adminStore() {
         this.dateRangeLabel = `Last ${Number(j.days || days)} days`;
       } catch {}
     },
+    setLocation(id: string) {
+      this.selectedLocationId = id || 'all';
+      if (this.selectedLocationId === 'all') {
+        this.locationName = 'All Locations';
+      } else {
+        const found = (this.locations || []).find((l: any) => l.id === this.selectedLocationId);
+        this.locationName = found ? found.name : this.selectedLocationId;
+      }
+      this.locationMenuOpen = false;
+
+      // refresh analytics for this location
+      this.refreshStats(30);
+      this.refreshCharts(30);
+    },
+
+
 
     formatPriceCents(priceCents: number) {
       return `$${((priceCents || 0) / 100).toFixed(2)}`;
@@ -186,7 +205,7 @@ export function adminStore() {
       this.chartsLoading = true;
       this.chartsError = null;
       try {
-        const res = await fetch(`/api/v1/admin/charts?days=${days}`, { credentials: 'include' });
+        const res = await fetch(`/api/v1/admin/charts?days=${days}&locationId=${encodeURIComponent(this.selectedLocationId || 'all')}`, { credentials: 'include' });
         const j = await res.json().catch(() => null);
         if (!res.ok || !j) throw new Error('Failed to load charts');
 
