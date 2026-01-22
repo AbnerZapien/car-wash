@@ -108,6 +108,7 @@ export function adminStore() {
     async init() {
       await this.refresh();
       await this.refreshPlans();
+      await this.refreshLocations();
         
       this.computeStats();
       await this.refreshStats(30);
