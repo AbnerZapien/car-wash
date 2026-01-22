@@ -34,6 +34,10 @@ export function adminStore() {
     searchQuery: '',
     locationName: 'All Locations',
     dateRangeLabel: 'Last 30 days',
+
+    // Charts
+    chartsLoading: false,
+    chartsError: null as string | null,
     
     // Toast/snackbar
     toastOpen: false,
@@ -104,6 +108,7 @@ export function adminStore() {
         
       this.computeStats();
       await this.refreshStats(30);
+      await this.refreshCharts(30);
     },
 
     navigate(id: string) {
@@ -177,6 +182,126 @@ export function adminStore() {
         this.loading = false;
       }
     },
+    async refreshCharts(days: number = 30) {
+      this.chartsLoading = true;
+      this.chartsError = null;
+      try {
+        const res = await fetch(`/api/v1/admin/charts?days=${days}`, { credentials: 'include' });
+        const j = await res.json().catch(() => null);
+        if (!res.ok || !j) throw new Error('Failed to load charts');
+
+        // keep header stats aligned
+        this.stats.activeMemberCount = Number(j.activeMemberCount || 0);
+        this.stats.averageUsageRate = Number(j.averageUsageRate || 0);
+        this.stats.monthlyProjection = Number(j.monthlyProjection || 0);
+        this.dateRangeLabel = `Last ${Number(j.days || days)} days`;
+
+        this.renderCharts(j);
+      } catch (e: any) {
+        this.chartsError = e?.message ?? 'Failed to load charts';
+        this.toast(this.chartsError, 'error');
+      } finally {
+        this.chartsLoading = false;
+      }
+    },
+
+    renderCharts(d: any) {
+      const Chart = (window as any).Chart;
+      if (!Chart) return;
+
+      const w: any = window as any;
+      w.__adminCharts = w.__adminCharts || {};
+
+      const labels7 = (d.labels || []).slice(-7);
+      const scans7 = (d.scansPerDay || []).slice(-7);
+
+      // 1) ActiveMembersChart -> scans/day (last 7)
+      const c1 = document.getElementById('activeMembersChart') as HTMLCanvasElement | null;
+      if (c1) {
+        const cfg: any = {
+          type: 'line',
+          data: { labels: labels7, datasets: [{ label: 'Scans', data: scans7, tension: 0.4, fill: false, pointRadius: 0 }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } },
+        };
+        if (w.__adminCharts.activeMembers) { w.__adminCharts.activeMembers.data = cfg.data; w.__adminCharts.activeMembers.update(); }
+        else { w.__adminCharts.activeMembers = new Chart(c1.getContext('2d'), cfg); }
+      }
+
+      // 2) UsageRateChart -> gauge from avg usage (0..5 mapped)
+      const avg = Number(d.averageUsageRate || 0);
+      const ratio = Math.max(0, Math.min(avg / 5.0, 1));
+      const c2 = document.getElementById('usageRateChart') as HTMLCanvasElement | null;
+      if (c2) {
+        const cfg: any = {
+          type: 'doughnut',
+          data: { datasets: [{ data: [ratio, 1 - ratio], borderWidth: 0 }] },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '70%', rotation: -1.25 * Math.PI, circumference: Math.PI, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+        };
+        if (w.__adminCharts.usageRate) { w.__adminCharts.usageRate.data = cfg.data; w.__adminCharts.usageRate.update(); }
+        else { w.__adminCharts.usageRate = new Chart(c2.getContext('2d'), cfg); }
+      }
+
+      // 3) ProjectionChart -> monthlyProjection split into 4 weeks
+      const mp = Number(d.monthlyProjection || 0);
+      const weeks = [mp/4, mp/4, mp/4, mp/4];
+      const c3 = document.getElementById('projectionChart') as HTMLCanvasElement | null;
+      if (c3) {
+        const cfg: any = {
+          type: 'bar',
+          data: { labels: ['Week 1','Week 2','Week 3','Week 4'], datasets: [{ label: 'Projection ($)', data: weeks, borderRadius: 5 }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } },
+        };
+        if (w.__adminCharts.projection) { w.__adminCharts.projection.data = cfg.data; w.__adminCharts.projection.update(); }
+        else { w.__adminCharts.projection = new Chart(c3.getContext('2d'), cfg); }
+      }
+
+      // 4) memberDemographicsChart -> plan mix
+      const c4 = document.getElementById('memberDemographicsChart') as HTMLCanvasElement | null;
+      if (c4) {
+        const cfg: any = {
+          type: 'pie',
+          data: { labels: d.planMixLabels || [], datasets: [{ data: d.planMixCounts || [] }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } },
+        };
+        if (w.__adminCharts.planMix) { w.__adminCharts.planMix.data = cfg.data; w.__adminCharts.planMix.update(); }
+        else { w.__adminCharts.planMix = new Chart(c4.getContext('2d'), cfg); }
+      }
+
+      // 5) usageHeatmapChart -> stacked bars
+      const c5 = document.getElementById('usageHeatmapChart') as HTMLCanvasElement | null;
+      if (c5) {
+        const cfg: any = {
+          type: 'bar',
+          data: {
+            labels: d.heatmapLabels || ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+            datasets: [
+              { label: 'Morning', data: d.heatmapMorning || [], stack: 'x' },
+              { label: 'Afternoon', data: d.heatmapAfternoon || [], stack: 'x' },
+              { label: 'Evening', data: d.heatmapEvening || [], stack: 'x' },
+            ],
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, display: false } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } },
+        };
+        if (w.__adminCharts.heatmap) { w.__adminCharts.heatmap.data = cfg.data; w.__adminCharts.heatmap.update(); }
+        else { w.__adminCharts.heatmap = new Chart(c5.getContext('2d'), cfg); }
+      }
+
+      // 6) retentionTrendChart -> retention % last 30
+      const c6 = document.getElementById('retentionTrendChart') as HTMLCanvasElement | null;
+      if (c6) {
+        const lbl30 = (d.labels || []).slice(-30);
+        const ret30 = (d.retentionPctPerDay || []).slice(-30);
+        const cfg: any = {
+          type: 'line',
+          data: { labels: lbl30, datasets: [{ label: 'Unique users / active subs (%)', data: ret30, tension: 0.3, fill: false, pointRadius: 0 }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } },
+        };
+        if (w.__adminCharts.retention) { w.__adminCharts.retention.data = cfg.data; w.__adminCharts.retention.update(); }
+        else { w.__adminCharts.retention = new Chart(c6.getContext('2d'), cfg); }
+      }
+    },
+
+
     computeStats() {
       const active = this.members.filter((m) => m.subStatus === 'active').length;
       this.stats.activeMemberCount = active;
