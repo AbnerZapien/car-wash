@@ -30,6 +30,10 @@ func (a *AdminAPIService) RegisterRoutes() {
 	g.GET("/members", a.ListMembers)
 	g.DELETE("/users/:id", a.DeleteUser)
 	g.GET("/plans", a.ListPlans)
+	g.GET("/locations", a.ListLocations)
+	g.POST("/locations", a.CreateLocation)
+	g.PUT("/locations/:id", a.UpdateLocation)
+	g.DELETE("/locations/:id", a.DeleteLocation)
 	g.POST("/plans", a.CreatePlan)
 	g.PUT("/plans/:id", a.UpdatePlan)
 	g.DELETE("/plans/:id", a.DeletePlan)
@@ -437,4 +441,96 @@ func (a *AdminAPIService) ReassignPlan(c echo.Context) error {
 	})
 
 	return c.JSON(http.StatusOK, map[string]any{"ok": true, "moved": moved})
+}
+
+type AdminLocation struct {
+	ID      string `json:"id" db:"id"`
+	Name    string `json:"name" db:"name"`
+	Address string `json:"address" db:"address"`
+}
+
+type locationReq struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+}
+
+func (a *AdminAPIService) ListLocations(c echo.Context) error {
+	q := a.db.Rebind(`SELECT id, name, COALESCE(address,'') AS address FROM locations ORDER BY name ASC`)
+	var locs []AdminLocation
+	if err := a.db.Select(&locs, q); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, map[string]any{"locations": locs})
+}
+
+func (a *AdminAPIService) CreateLocation(c echo.Context) error {
+	var req locationReq
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid json"})
+	}
+	req.ID = strings.TrimSpace(req.ID)
+	req.Name = strings.TrimSpace(req.Name)
+	req.Address = strings.TrimSpace(req.Address)
+
+	if req.ID == "" || req.Name == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "id and name are required"})
+	}
+
+	q := a.db.Rebind(`INSERT INTO locations (id, name, address) VALUES (?, ?, ?)`)
+	if _, err := a.db.Exec(q, req.ID, req.Name, req.Address); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	a.audit(c, "location.create", "location", req.ID, map[string]any{"name": req.Name, "address": req.Address})
+	return c.JSON(http.StatusOK, map[string]any{"ok": true})
+}
+
+func (a *AdminAPIService) UpdateLocation(c echo.Context) error {
+	locID := strings.TrimSpace(c.Param("id"))
+	if locID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing location id"})
+	}
+
+	var req locationReq
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid json"})
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	req.Address = strings.TrimSpace(req.Address)
+
+	if req.Name == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name is required"})
+	}
+
+	q := a.db.Rebind(`UPDATE locations SET name = ?, address = ? WHERE id = ?`)
+	if _, err := a.db.Exec(q, req.Name, req.Address, locID); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	a.audit(c, "location.update", "location", locID, map[string]any{"name": req.Name, "address": req.Address})
+	return c.JSON(http.StatusOK, map[string]any{"ok": true})
+}
+
+func (a *AdminAPIService) DeleteLocation(c echo.Context) error {
+	locID := strings.TrimSpace(c.Param("id"))
+	if locID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing location id"})
+	}
+
+	// Block delete if wash events exist
+	var cnt int
+	q1 := a.db.Rebind(`SELECT COUNT(1) FROM wash_events WHERE location_id = ?`)
+	if err := a.db.Get(&cnt, q1, locID); err == nil && cnt > 0 {
+		a.audit(c, "location.delete_blocked", "location", locID, map[string]any{"events": cnt})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "cannot delete location: wash events exist"})
+	}
+
+	q := a.db.Rebind(`DELETE FROM locations WHERE id = ?`)
+	if _, err := a.db.Exec(q, locID); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	a.audit(c, "location.delete", "location", locID, map[string]any{})
+	return c.JSON(http.StatusOK, map[string]any{"ok": true})
 }
