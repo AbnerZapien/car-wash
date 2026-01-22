@@ -191,9 +191,7 @@ templ Scanner(vm ScannerVM) {
 <p class="text-slate-600 mb-2" x-show="scanAllowed">Plan: <span x-text="scannedUser?.plan"></span></p>
 <p class="text-slate-600 mb-6">Location: <span class="font-medium" x-text="selectedLocationName"></span></p>
 <p class="text-slate-600 mb-2" x-show="!scanAllowed">Reason: <span x-text="scanReason"></span></p>
-<p class="text-slate-600 mb-6">Location: <span class="font-medium" x-text="selectedLocationName"></span></p>
-
-					<button
+<button
 						@click="closeModal()"
 						class="w-full flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-4 bg-cyan-500 text-white text-base font-bold leading-normal tracking-wide hover:bg-cyan-600 transition-colors"
 					>
