@@ -30,7 +30,7 @@ func (m *MeAPIService) RegisterRoutes() {
 	m.httpService.PUT("/me", m.UpdateMe)
 	m.httpService.GET("/me/subscription", m.GetMySubscription)
 	m.httpService.POST("/me/subscription", m.SetMySubscription)
-	m.httpService.GET("/me/history", m.GetMyHistory)
+	m.httpService.GET("/me/history", m.GetMyHistoryV2)
 }
 
 type meRow struct {
