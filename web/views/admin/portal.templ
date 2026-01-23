@@ -654,89 +654,104 @@ templ Portal(vm PortalVM) {
 					</div>
 
 					
-				<!-- Member Detail Modal -->
-				<div x-show="memberDetailOpen" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-					<div class="bg-white w-full max-w-3xl rounded-xl shadow-xl p-6">
-						<div class="flex items-center justify-between mb-4">
-							<h3 class="text-lg font-bold text-slate-800">Member details</h3>
-							<button class="text-slate-500 hover:text-slate-800" @click="closeMemberDetail()">✕</button>
-						</div>
-
-						<div x-show="memberDetailLoading" class="p-4 bg-slate-50 border border-slate-200 rounded-lg">Loading…</div>
-						<div x-show="memberDetailError" x-cloak class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg" x-text="memberDetailError"></div>
-
-						<div x-show="!memberDetailLoading && memberDetail" x-cloak>
-							<!-- Header -->
-							<div class="flex items-center gap-4 border border-slate-200 rounded-lg p-4">
-								<div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
-									<template x-if="memberDetail?.avatarUrl">
-										<img :src="memberDetail?.avatarUrl" class="h-12 w-12 object-cover" alt="avatar"/>
-									</template>
-									<template x-if="!memberDetail?.avatarUrl">
-										<span class="text-indigo-600 font-semibold"
-											x-text="((((memberDetail?.firstName||'').slice(0,1)) + ((memberDetail?.lastName||'').slice(0,1))).toUpperCase() || (memberDetail?.username||'').slice(0,2).toUpperCase())"></span>
-									</template>
-								</div>
-								<div class="min-w-0">
-									<p class="text-slate-900 font-bold truncate"
-										x-text="`${(memberDetail?.firstName||'')} ${(memberDetail?.lastName||'')}`.trim() || memberDetail?.username"></p>
-									<p class="text-slate-500 text-sm truncate" x-text="memberDetail?.email"></p>
-									<p class="text-slate-500 text-xs">User ID: <span x-text="memberDetail?.id"></span></p>
-								</div>
-								<div class="ml-auto text-right">
-									<p class="text-slate-800 font-semibold" x-text="memberDetail?.planName || memberDetail?.planId || '—'"></p>
-									<p class="text-slate-500 text-sm" x-text="memberDetail?.subStatus"></p>
-									<p class="text-slate-500 text-xs" x-text="memberDetail?.nextBillingDate ? `Next billing: ${memberDetail?.nextBillingDate}` : ''"></p>
-									<p class="text-slate-500 text-xs" x-text="`Washes: ${memberDetail?.washCount || 0}`"></p>
-								</div>
+								<!-- Member Detail Modal -->
+				<template x-if="memberDetailOpen">
+					<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeMemberDetail()">
+						<div class="bg-white w-full max-w-3xl rounded-xl shadow-xl p-6 max-h-[85vh] overflow-auto">
+							<div class="flex items-center justify-between mb-4">
+								<h3 class="text-lg font-bold text-slate-800">Member details</h3>
+								<button class="text-slate-500 hover:text-slate-800" @click="closeMemberDetail()">✕</button>
 							</div>
 
-							<!-- Recent events -->
-							<div class="mt-6">
-								<div class="flex items-center justify-between mb-2">
-									<p class="text-slate-800 font-bold">Recent wash events</p>
-									<p class="text-slate-500 text-xs" x-text="(memberDetailEvents?.length || 0) + ' event(s)'"></p>
-								</div>
+							<template x-if="memberDetailLoading">
+								<div class="p-4 bg-slate-50 border border-slate-200 rounded-lg">Loading…</div>
+							</template>
 
-								<div class="border border-slate-200 rounded-lg overflow-hidden">
-									<div class="overflow-x-auto">
-										<table class="min-w-full text-sm">
-											<thead class="bg-slate-50 text-slate-600">
-												<tr>
-													<th class="text-left px-4 py-3">Time (UTC)</th>
-													<th class="text-left px-4 py-3">Location</th>
-													<th class="text-left px-4 py-3">Result</th>
-													<th class="text-left px-4 py-3">Reason</th>
-												</tr>
-											</thead>
-											<tbody class="divide-y divide-slate-100">
-												<template x-for="e in (memberDetailEvents || [])" :key="e.scannedAt + ':' + e.rawQr">
-													<tr class="text-slate-800">
-														<td class="px-4 py-3 whitespace-nowrap" x-text="e.scannedAt"></td>
-														<td class="px-4 py-3" x-text="e.location || e.locationId || '—'"></td>
-														<td class="px-4 py-3">
-															<span class="px-2 py-1 rounded-full text-xs font-semibold"
-																:class="e.result === 'allowed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-																x-text="e.result"></span>
-														</td>
-														<td class="px-4 py-3 text-slate-600" x-text="e.reason || ''"></td>
-													</tr>
-												</template>
-												<tr x-show="!memberDetailEvents || memberDetailEvents.length === 0">
-													<td colspan="4" class="px-4 py-6 text-center text-slate-500">No wash events yet.</td>
-												</tr>
-											</tbody>
-										</table>
+							<template x-if="memberDetailError">
+								<div class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg" x-text="memberDetailError"></div>
+							</template>
+
+							<template x-if="!memberDetailLoading && memberDetail">
+								<div>
+									<div class="flex items-center gap-4 border border-slate-200 rounded-lg p-4">
+										<div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+											<template x-if="memberDetail?.avatarUrl">
+												<img :src="memberDetail.avatarUrl" class="h-12 w-12 object-cover" alt="avatar"/>
+											</template>
+											<template x-if="!memberDetail?.avatarUrl">
+												<span class="text-indigo-600 font-semibold"
+													x-text="((((memberDetail?.firstName||'').slice(0,1)) + ((memberDetail?.lastName||'').slice(0,1))).toUpperCase() || (memberDetail?.username||'').slice(0,2).toUpperCase())"></span>
+											</template>
+										</div>
+
+										<div class="min-w-0">
+											<p class="text-slate-900 font-bold truncate"
+												x-text="`${(memberDetail?.firstName||'')} ${(memberDetail?.lastName||'')}`.trim() || memberDetail?.username"></p>
+											<p class="text-slate-500 text-sm truncate" x-text="memberDetail?.email"></p>
+											<p class="text-slate-500 text-xs">User ID: <span x-text="memberDetail?.id"></span></p>
+										</div>
+
+										<div class="ml-auto text-right">
+											<p class="text-slate-800 font-semibold" x-text="memberDetail?.planName || memberDetail?.planId || '—'"></p>
+											<p class="text-slate-500 text-sm" x-text="memberDetail?.subStatus"></p>
+											<p class="text-slate-500 text-xs" x-text="memberDetail?.nextBillingDate ? `Next billing: ${memberDetail.nextBillingDate}` : ''"></p>
+											<p class="text-slate-500 text-xs" x-text="`Washes: ${memberDetail?.washCount || 0}`"></p>
+										</div>
+									</div>
+
+									<div class="mt-6">
+										<div class="flex items-center justify-between mb-2">
+											<p class="text-slate-800 font-bold">Recent wash events</p>
+											<p class="text-slate-500 text-xs" x-text="(memberDetailEvents?.length || 0) + ' event(s)'"></p>
+										</div>
+
+										<div class="border border-slate-200 rounded-lg overflow-hidden">
+											<div class="overflow-x-auto">
+												<table class="min-w-full text-sm">
+													<thead class="bg-slate-50 text-slate-600">
+														<tr>
+															<th class="text-left px-4 py-3">Time (UTC)</th>
+															<th class="text-left px-4 py-3">Location</th>
+															<th class="text-left px-4 py-3">Result</th>
+															<th class="text-left px-4 py-3">Reason</th>
+														</tr>
+													</thead>
+													<tbody class="divide-y divide-slate-100">
+														<template x-for="e in (memberDetailEvents || [])" :key="(e.scannedAt || '') + ':' + (e.rawQr || '')">
+															<tr class="text-slate-800">
+																<td class="px-4 py-3 whitespace-nowrap" x-text="e.scannedAt"></td>
+																<td class="px-4 py-3" x-text="e.location || e.locationId || '—'"></td>
+																<td class="px-4 py-3">
+																	<span class="px-2 py-1 rounded-full text-xs font-semibold"
+																		:class="e.result === 'allowed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+																		x-text="e.result"></span>
+																</td>
+																<td class="px-4 py-3 text-slate-600" x-text="e.reason || ''"></td>
+															</tr>
+														</template>
+
+														<tr x-show="!memberDetailEvents || memberDetailEvents.length === 0">
+															<td colspan="4" class="px-4 py-6 text-center text-slate-500">No wash events yet.</td>
+														</tr>
+													</tbody>
+												</table>
+											</div>
+										</div>
+
+										<div class="mt-4 flex justify-end">
+											<button class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300" @click="closeMemberDetail()">Close</button>
+										</div>
 									</div>
 								</div>
+							</template>
 
-								<div class="mt-4 flex justify-end">
-									<button class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300" @click="closeMemberDetail()">Close</button>
-								</div>
-							</div>
+							<template x-if="!memberDetailLoading && !memberDetail && !memberDetailError">
+								<div class="p-4 bg-slate-50 border border-slate-200 rounded-lg">No member selected.</div>
+							</template>
 						</div>
 					</div>
-				</div>
+				</template>
+
 
 				<!-- Placeholder for other nav sections -->
 				<div x-show="!['dashboard', 'members', 'plans', 'locations', 'audit'].includes(activeNav)" x-cloak>
