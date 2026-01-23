@@ -26,6 +26,16 @@ interface AdminLocation {
   address: string;
 }
 
+
+type AdminWashEvent = {
+  scannedAt: string;
+  locationId: string;
+  location: string;
+  result: string;
+  reason: string;
+  rawQr: string;
+};
+
 export function adminStore() {
   return {
     // portal UI expects these
@@ -69,6 +79,13 @@ export function adminStore() {
     filteredMembers: [] as AdminMember[],
     loading: false,
     error: null as string | null,
+
+    // Member Detail (modal)
+    memberDetailOpen: false,
+    memberDetailLoading: false,
+    memberDetailError: null as string | null,
+    memberDetail: null as AdminMember | null,
+    memberDetailEvents: [] as AdminWashEvent[],
 
     // Plans
     plans: [] as AdminPlan[],
@@ -359,6 +376,35 @@ export function adminStore() {
         this.toast(e?.message ?? 'Delete failed', 'error');
       }
     },
+
+    async openMemberDetail(id: number) {
+      this.memberDetailOpen = true;
+      this.memberDetailLoading = true;
+      this.memberDetailError = null;
+      this.memberDetail = null;
+      this.memberDetailEvents = [];
+
+      try {
+        const res = await fetch(`/api/v1/admin/members/${id}`, { credentials: 'include' });
+        const j = await res.json().catch(() => ({} as any));
+        if (!res.ok) throw new Error(j?.error || 'Failed to load member');
+
+        this.memberDetail = (j.member || null) as AdminMember | null;
+        this.memberDetailEvents = (j.washEvents || []) as AdminWashEvent[];
+      } catch (e: any) {
+        this.memberDetailError = e?.message ?? 'Failed to load member';
+        this.toast(this.memberDetailError, 'error');
+      } finally {
+        this.memberDetailLoading = false;
+      }
+    },
+
+    closeMemberDetail() {
+      this.memberDetailOpen = false;
+      this.memberDetailLoading = false;
+      this.memberDetailError = null;
+    },
+
 
     
     // --- Locations ---
