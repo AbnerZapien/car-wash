@@ -14,6 +14,7 @@ import (
 	"github.com/edlingao/hexago/web/views/scanner"
 	"github.com/edlingao/hexago/web/views/users"
 	"github.com/labstack/echo/v4"
+	"strings"
 )
 
 type UsersWebService struct {
@@ -178,6 +179,49 @@ func (uws *UsersWebService) SignUpEndpoint(c echo.Context) error {
 
 }
 
+func (uws *UsersWebService) requireStaffRole(c echo.Context) (bool, int64) {
+	db, err := ConnectDB()
+	if err != nil {
+		return false, 0
+	}
+	defer db.Close()
+
+	// token from cookie session_token, Authorization: Bearer, or X-Session-Token
+	token := ""
+	if ck, err := c.Cookie("session_token"); err == nil {
+		token = ck.Value
+	}
+	if token == "" {
+		auth := c.Request().Header.Get("Authorization")
+		if strings.HasPrefix(auth, "Bearer ") {
+			token = strings.TrimSpace(strings.TrimPrefix(auth, "Bearer "))
+		}
+	}
+	if token == "" {
+		token = strings.TrimSpace(c.Request().Header.Get("X-Session-Token"))
+	}
+	if token == "" {
+		return false, 0
+	}
+
+	var uid int64
+	q := db.Rebind(`SELECT user_id FROM sessions WHERE token = ? LIMIT 1`)
+	if err := db.Get(&uid, q, token); err != nil {
+		return false, 0
+	}
+
+	var role string
+	q2 := db.Rebind(`SELECT role FROM users WHERE id = ? LIMIT 1`)
+	if err := db.Get(&role, q2, uid); err != nil {
+		return false, 0
+	}
+
+	if role != "admin" && role != "attendant" {
+		return false, uid
+	}
+	return true, uid
+}
+
 func (uh UsersWebService) SetCookie(key string, c echo.Context) *http.Cookie {
 	secure := os.Getenv("ENVIRONMENT") == "prod"
 	cookie := &http.Cookie{
@@ -210,6 +254,15 @@ func (uws *UsersWebService) QRCode(c echo.Context) error {
 }
 
 func (uws *UsersWebService) Scanner(c echo.Context) error {
+
+	ok, uid := uws.requireStaffRole(c)
+	if !ok {
+		if uid == 0 {
+			return c.Redirect(302, "/login")
+		}
+		return c.Redirect(302, "/dashboard")
+	}
+
 	return web.Render(
 		c,
 		scanner.Scanner(scanner.ScannerVM{}),
