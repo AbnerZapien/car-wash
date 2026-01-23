@@ -123,7 +123,12 @@ templ Dashboard(vm DashboardVM) {
 															<span class="material-symbols-outlined">directions_car</span>
 														</div>
 														<div>
-															<p class="font-semibold text-slate-800" x-text="wash.washType"></p>
+															<div class="flex items-center gap-2 min-w-0">
+										<span class="px-2 py-1 text-xs font-semibold rounded-full shrink-0"
+											:class="wash.result === 'allowed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+											x-text="wash.result === 'allowed' ? 'Allowed' : 'Denied'"></span>
+										<p class="font-semibold text-slate-800 truncate" x-text="wash.washType"></p>
+									</div>
 															<p class="text-sm text-slate-500" x-text="wash.location.name"></p>
 														</div>
 													</div>
