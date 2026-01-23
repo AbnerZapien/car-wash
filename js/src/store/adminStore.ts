@@ -403,6 +403,8 @@ export function adminStore() {
       this.memberDetailOpen = false;
       this.memberDetailLoading = false;
       this.memberDetailError = null;
+      this.memberDetail = null;
+      this.memberDetailEvents = [];
     },
 
 
