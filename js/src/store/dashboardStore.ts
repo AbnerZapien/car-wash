@@ -143,18 +143,17 @@ export function dashboardStore() {
         const histRes = await fetch('/api/v1/me/history', { headers, credentials: 'include' });
         if (!histRes.ok) throw new Error('Failed to load history');
         const data = await histRes.json();
-        const items: HistoryItem[] = data.items || [];
+        const items: HistoryItem[] = (data.events || data.items || []);
 
         this.washHistory = items.map((e) => {
           const d = new Date(e.scannedAt);
-          const washType =
-            e.result === 'allowed'
-              ? 'Access Granted'
-              : `Access Denied${e.reason ? ` — ${e.reason}` : ''}`;
+          const washType = e.result === 'allowed' ? 'Access Granted' : 'Access Denied';
 
           return {
             id: e.id,
             washType,
+            result: e.result,
+            reason: e.reason,
             location: {
               name: e.locationName || e.locationId || 'Unknown location',
               address: e.locationAddress || '',
