@@ -28,6 +28,7 @@ func (a *AdminAPIService) WithDB(db *sqlx.DB) *AdminAPIService {
 func (a *AdminAPIService) RegisterRoutes() {
 	g := a.httpService.Group("/admin", a.requireAdmin)
 	g.GET("/members", a.ListMembers)
+	g.GET("/members/:id", a.GetMemberDetail)
 	g.DELETE("/users/:id", a.DeleteUser)
 	g.GET("/plans", a.ListPlans)
 	g.GET("/locations", a.ListLocations)
@@ -907,4 +908,74 @@ func (a *AdminAPIService) GetCharts(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, out)
+}
+
+type AdminWashEvent struct {
+	ScannedAt  string `json:"scannedAt" db:"scanned_at"`
+	LocationID string `json:"locationId" db:"location_id"`
+	Location   string `json:"location" db:"location_name"`
+	Result     string `json:"result" db:"result"`
+	Reason     string `json:"reason" db:"reason"`
+	RawQR      string `json:"rawQr" db:"raw_qr"`
+}
+
+func (a *AdminAPIService) GetMemberDetail(c echo.Context) error {
+	if a.db == nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db not configured"})
+	}
+
+	idStr := c.Param("id")
+	uid, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
+	if err != nil || uid <= 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid user id"})
+	}
+
+	// Member summary (matches ListMembers fields)
+	q := a.db.Rebind(`
+		SELECT
+			u.id, u.username, u.email, u.first_name, u.last_name, u.avatar_url,
+			COALESCE(u.created_at::text,'') as created_at,
+			COALESCE(s.plan_id,'') as plan_id,
+			COALESCE(p.name,'') as plan_name,
+			COALESCE(s.status,'none') as sub_status,
+			COALESCE(s.next_billing_date,'') as next_billing_date,
+			COALESCE(w.cnt,0) as wash_count
+		FROM users u
+		LEFT JOIN subscriptions s ON s.user_id = u.id AND s.status = 'active'
+		LEFT JOIN plans p ON p.id = s.plan_id
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) cnt
+			FROM wash_events
+			GROUP BY user_id
+		) w ON w.user_id = u.id
+		WHERE u.id = ?
+		LIMIT 1
+	`)
+	var m AdminMember
+	if err := a.db.Get(&m, q, uid); err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "member not found"})
+	}
+
+	// Recent events
+	q2 := a.db.Rebind(`
+		SELECT
+			COALESCE(e.scanned_at::text,'') as scanned_at,
+			COALESCE(e.location_id,'') as location_id,
+			COALESCE(l.name,'') as location_name,
+			COALESCE(e.result,'') as result,
+			COALESCE(e.reason,'') as reason,
+			COALESCE(e.raw_qr,'') as raw_qr
+		FROM wash_events e
+		LEFT JOIN locations l ON l.id = e.location_id
+		WHERE e.user_id = ?
+		ORDER BY e.scanned_at DESC
+		LIMIT 25
+	`)
+	var events []AdminWashEvent
+	_ = a.db.Select(&events, q2, uid)
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"member":     m,
+		"washEvents": events,
+	})
 }
