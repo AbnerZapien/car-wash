@@ -136,6 +136,7 @@ func NewUsersAPIService(
 
 	uApiService.httpService.POST("/signin", uApiService.SignIn)
 	uApiService.httpService.POST("/signup", uApiService.SignUp)
+	uApiService.httpService.POST("/logout", uApiService.Logout)
 
 	// Protected routes
 	protected := uApiService.httpService.Group("", sessionService.APIAuth)
@@ -306,4 +307,45 @@ func (uas *UsersAPIService) SignUp(c echo.Context) error {
 			Token: token.Token,
 		},
 	})
+}
+
+func (uas *UsersAPIService) Logout(c echo.Context) error {
+	// token from cookie session_token, Authorization: Bearer, or X-Session-Token
+	token := ""
+	if ck, err := c.Cookie("session_token"); err == nil {
+		token = ck.Value
+	}
+	if token == "" {
+		authz := c.Request().Header.Get("Authorization")
+		if strings.HasPrefix(authz, "Bearer ") {
+			token = strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
+		}
+	}
+	if token == "" {
+		token = strings.TrimSpace(c.Request().Header.Get("X-Session-Token"))
+	}
+
+	// Best-effort delete session row
+	if token != "" {
+		db, err := ConnectDB()
+		if err == nil {
+			defer db.Close()
+			_, _ = db.Exec(db.Rebind(`DELETE FROM sessions WHERE token = ?`), token)
+		}
+	}
+
+	// Expire cookie
+	secure := os.Getenv("ENV") == "production"
+	c.SetCookie(&http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   secure,
+	})
+
+	return c.JSON(200, map[string]any{"ok": true})
 }

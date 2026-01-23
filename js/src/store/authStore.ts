@@ -206,10 +206,13 @@ export function authStore() {
       }
     },
 
-    logout() {
+    async logout() {
+      try {
+        await fetch('/api/v1/users/logout', { method: 'POST', credentials: 'include' });
+      } catch {}
+
       this.isAuthenticated = false;
       this.currentUser = null;
-      this.token = null;
       storage.remove(STORAGE_KEYS.AUTH);
       storage.remove(STORAGE_KEYS.USER);
       window.location.href = '/login';
