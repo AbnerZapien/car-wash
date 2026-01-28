@@ -126,6 +126,11 @@ func (c *Configurator) AddLocationsAPI() *Configurator {
 	return c
 }
 
+func (c *Configurator) AddVinAPI() *Configurator {
+	usersAdapter.NewVINAPIService(c.v1).RegisterRoutes()
+	return c
+}
+
 func (c *Configurator) Start() {
 	port := os.Getenv("GO_PORT")
 	c.Echo.Logger.Fatal(c.Echo.Start(":" + port))
@@ -154,6 +159,11 @@ func (c *Configurator) AddMeAPI() *Configurator {
 
 func (c *Configurator) AddPlansAPI() *Configurator {
 	usersAdapter.NewPlansAPIService(c.v1)
+	return c
+}
+
+func (c *Configurator) AddCarCatalogAPI() *Configurator {
+	usersAdapter.NewCarCatalogAPIService(c.v1).RegisterRoutes()
 	return c
 }
 

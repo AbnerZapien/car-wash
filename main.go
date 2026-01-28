@@ -31,6 +31,8 @@ func main() {
 	config.AddMeAPI()
 	config.AddPublicWeb()
 	config.AddPlansAPI()
+	config.AddCarCatalogAPI()
+	config.AddVinAPI()
 	config.AddLocationsAPI()
 	config.AddAdminAPI()
 	config.AddUserWeb()

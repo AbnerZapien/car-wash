@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"fmt"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
-	"time"
 )
 
 type MeAPIService struct {
@@ -31,6 +32,11 @@ func (m *MeAPIService) RegisterRoutes() {
 	m.httpService.GET("/me/subscription", m.GetMySubscription)
 	m.httpService.POST("/me/subscription", m.SetMySubscription)
 	m.httpService.GET("/me/history", m.GetMyHistoryV2)
+	m.httpService.GET("/me/cars", m.ListMyCars)
+	m.httpService.POST("/me/cars", m.CreateMyCar)
+	m.httpService.PUT("/me/cars/:id", m.UpdateMyCar)
+	m.httpService.DELETE("/me/cars/:id", m.DeleteMyCar)
+
 }
 
 type meRow struct {
