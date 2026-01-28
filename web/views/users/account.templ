@@ -130,7 +130,142 @@ templ Account(vm AccountVM) {
 									</div>
 								</div>
 							</div>
-						</main>
+						
+							<!-- My Cars -->
+							<div class="p-4" x-data="myCarsStore()" x-init="init()">
+								<div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+									<div class="flex items-center justify-between">
+										<p class="text-slate-800 font-bold">My Cars</p>
+										<button class="rounded-lg bg-blue-600 px-4 py-2 text-white font-bold hover:bg-blue-700"
+											@click="openAdd()">
+											Add car
+										</button>
+									</div>
+
+									<div x-show="loading" class="mt-4 text-slate-500">Loading…</div>
+									<div x-show="error" x-cloak class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800" x-text="error"></div>
+
+									<div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+										<template x-for="c in cars" :key="c.id">
+											<div class="rounded-lg border border-slate-200 p-4 flex items-start justify-between gap-4">
+												<div class="min-w-0">
+													<p class="text-slate-800 font-bold truncate" x-text="carTitle(c)"></p>
+													<p class="text-slate-500 text-sm truncate" x-text="`${c.year || ''} ${(c.make || '')} ${(c.model || '')}`.trim()"></p>
+													<p class="text-slate-500 text-xs mt-1" x-show="c.plate" x-text="`Plate: ${c.plate}`"></p>
+													<p class="text-slate-500 text-xs" x-show="c.vin" x-text="`VIN: ${c.vin}`"></p>
+												</div>
+												<div class="flex gap-2 shrink-0">
+													<button class="rounded-lg bg-slate-200 px-3 py-2 text-slate-800 font-bold hover:bg-slate-300"
+														@click="openEdit(c)">Edit</button>
+													<button class="rounded-lg bg-red-600 px-3 py-2 text-white font-bold hover:bg-red-700"
+														@click="remove(c.id)">Delete</button>
+												</div>
+											</div>
+										</template>
+
+										<div x-show="!loading && (!cars || cars.length === 0)" class="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
+											No cars yet. Click <span class="font-semibold">Add car</span> to create one.
+										</div>
+									</div>
+
+									<!-- Car modal -->
+									<div x-show="modalOpen" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+										<div class="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+											<div class="flex items-center justify-between mb-4">
+												<h3 class="text-lg font-bold text-slate-800" x-text="editingId ? 'Edit car' : 'Add car'"></h3>
+												<button class="text-slate-500 hover:text-slate-800" @click="closeModal()">✕</button>
+											</div>
+
+											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+												<div class="md:col-span-2">
+													<label class="text-sm font-medium text-slate-700">Nickname (optional)</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" x-model="form.nickname" placeholder="My SUV"/>
+												</div>
+
+												<div>
+													<label class="text-sm font-medium text-slate-700">Year</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+														x-model="form.year" @input="onYearInput($event.target.value)" placeholder="2022"/>
+												</div>
+
+												<div>
+													<label class="text-sm font-medium text-slate-700">VIN (optional)</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+														x-model="form.vin" placeholder="17-char VIN"/>
+													<div class="mt-2">
+														<button class="rounded-lg bg-slate-200 px-3 py-2 text-slate-800 font-bold hover:bg-slate-300 disabled:opacity-60"
+															x-show="(form.vin || '').trim().length === 17"
+															:disabled="decodingVin"
+															@click="decodeVIN()">
+															<span x-text="decodingVin ? 'Decoding…' : 'Decode VIN'"></span>
+														</button>
+													</div>
+												</div>
+
+												<div class="relative" @click.outside="makeOpen=false">
+													<label class="text-sm font-medium text-slate-700">Make</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+														x-model="form.make"
+														@focus="onMakeFocus()"
+														@input="onMakeInput($event.target.value)"
+														@keydown.escape="makeOpen=false"
+														placeholder="Toyota"/>
+													<div x-show="makeOpen" x-cloak class="absolute z-50 mt-2 w-full rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden max-h-56 overflow-y-auto">
+														<template x-for="m in makeSuggestions" :key="m">
+															<button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-50" @click="selectMake(m)">
+																<span x-text="m"></span>
+															</button>
+														</template>
+													</div>
+												</div>
+
+												<div class="relative" @click.outside="modelOpen=false">
+													<label class="text-sm font-medium text-slate-700">Model</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+														x-model="form.model"
+														@focus="onModelFocus()"
+														@input="onModelInput($event.target.value)"
+														@keydown.escape="modelOpen=false"
+														placeholder="Camry"/>
+													<div x-show="modelOpen" x-cloak class="absolute z-50 mt-2 w-full rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden max-h-56 overflow-y-auto">
+														<template x-for="m in modelSuggestions" :key="m">
+															<button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-50" @click="selectModel(m)">
+																<span x-text="m"></span>
+															</button>
+														</template>
+													</div>
+												</div>
+
+												<div>
+													<label class="text-sm font-medium text-slate-700">Trim (optional)</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" x-model="form.trim" placeholder="XLE"/>
+												</div>
+												<div>
+													<label class="text-sm font-medium text-slate-700">Color (optional)</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" x-model="form.color" placeholder="Blue"/>
+												</div>
+												<div class="md:col-span-2">
+													<label class="text-sm font-medium text-slate-700">Plate (optional)</label>
+													<input class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" x-model="form.plate" placeholder="ABC-123"/>
+												</div>
+											</div>
+
+											<div x-show="error" x-cloak class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800" x-text="error"></div>
+
+											<div class="mt-6 flex justify-end gap-2">
+												<button class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300" @click="closeModal()">Cancel</button>
+												<button class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+													:disabled="saving"
+													@click="save()">
+													<span x-text="saving ? 'Saving…' : 'Save'"></span>
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+</main>
 
 						<footer class="mt-auto pt-8 pb-6 text-center text-sm text-slate-500">
 							<a href="/terms" class="hover:text-slate-800">Terms</a>

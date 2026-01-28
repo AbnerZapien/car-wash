@@ -23,7 +23,16 @@ window.Alpine.data('scannerStore', scannerStore);
 window.addEventListener(
   'DOMContentLoaded',
   () => {
-    Alpine.start();
+    Alpine.start()
+  Alpine.initTree(document.body);
   },
   false
 );
+
+
+document.addEventListener('htmx:afterSwap', (e: any) => {
+  try { Alpine.initTree(document.body) } catch {}
+});
+document.addEventListener('htmx:afterSettle', () => {
+  try { Alpine.initTree(document.body) } catch {}
+});

@@ -278,8 +278,17 @@ export function myCarsStore() {
           credentials: 'include',
         });
         const j = await res.json().catch(() => ({} as any));
-        if (!res.ok) throw new Error(j?.error || 'VIN decode failed');
+        if (!res.ok) {
+          const msg = String(j?.error || j?.message || 'Save failed');
 
+          // Handle duplicates even if backend returns 400 with Postgres SQLSTATE 23505
+          const dup =
+            res.status === 409 ||
+            msg.includes('23505') ||
+            msg.toLowerCase().includes('duplicate');
+
+          throw new Error(dup ? 'Car already exists (VIN or plate).' : msg);
+        }
         // Fill form
         this.form.year = j.year || this.form.year || '';
         this.form.make = toTitleCaseSmart(j.make || this.form.make || '');
@@ -342,10 +351,18 @@ export function myCarsStore() {
             body: JSON.stringify(payload),
           });
         }
-
         const j = await res.json().catch(() => ({} as any));
-        if (!res.ok) throw new Error(j?.error || j?.message || 'Save failed');
+        if (!res.ok) {
+          const msg = String(j?.error || j?.message || 'Save failed');
 
+          // Handle duplicates even if backend returns 400 with Postgres SQLSTATE 23505
+          const dup =
+            res.status === 409 ||
+            msg.includes('23505') ||
+            msg.toLowerCase().includes('duplicate');
+
+          throw new Error(dup ? 'Car already exists (VIN or plate).' : msg);
+        }
         this.closeModal();
         await this.refresh();
       } catch (e: any) {
