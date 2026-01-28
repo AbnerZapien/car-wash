@@ -186,11 +186,17 @@ func (m *MeAPIService) UpdateMyCar(c echo.Context) error {
 		    updated_at = NOW()
 		WHERE id = ? AND user_id = ?
 	`)
-	if _, err := m.db.Exec(q, req.Nickname, req.VIN, req.Year, req.Make, req.Model, req.Trim, req.Color, req.Plate, carID, uid); err != nil {
+	res, err := m.db.Exec(q, req.Nickname, req.VIN, req.Year, req.Make, req.Model, req.Trim, req.Color, req.Plate, carID, uid)
+	if err != nil {
+
 		if isUniqueViolation(err) {
 			return c.JSON(http.StatusConflict, map[string]string{"error": "Car already exists (VIN or plate)."})
 		}
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "car not found"})
 	}
 
 	var out carRow
