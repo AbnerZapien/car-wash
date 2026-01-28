@@ -223,12 +223,16 @@ func (m *MeAPIService) DeleteMyCar(c echo.Context) error {
 	}
 
 	q := m.db.Rebind(`DELETE FROM cars WHERE id = ? AND user_id = ?`)
-	if _, err := m.db.Exec(q, carID, uid); err != nil {
-		if isUniqueViolation(err) {
-			return c.JSON(http.StatusConflict, map[string]string{"error": "Car already exists (VIN or plate)."})
-		}
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	res, err := m.db.Exec(q, carID, uid)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "car not found"})
+	}
+
 	return c.JSON(http.StatusOK, map[string]any{"ok": true})
 }
 
