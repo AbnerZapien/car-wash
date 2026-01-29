@@ -1,0 +1,99 @@
+package users
+
+import "github.com/edlingao/hexago/web/templates"
+
+type UserShellVM struct {
+	Title string
+	Error error
+	Active string // "dashboard" | "history" | "account"
+}
+
+templ UserShell(vm UserShellVM) {
+	@templates.Index(templates.IndexVM{
+		Title: vm.Title,
+		Error: vm.Error,
+	}) {
+		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+		<div class="min-h-screen bg-neutral-50 text-neutral-900">
+			<!-- Topbar -->
+			<header class="sticky top-0 z-40 border-b border-neutral-200 bg-white/80 backdrop-blur">
+				<div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+					<a href="/" class="flex items-center gap-2">
+						<!-- Perfect circle mark -->
+						<div class="h-8 w-8 rounded-full bg-neutral-900 flex items-center justify-center">
+							<div class="h-3 w-3 rounded-full bg-blue-600"></div>
+						</div>
+						<span class="text-sm font-semibold tracking-tight">Hedgestone Carwash</span>
+					</a>
+
+					<nav class="hidden items-center gap-6 md:flex">
+						<a href="/dashboard"
+							class={ "text-sm " + (vm.Active == "dashboard" ? "font-semibold text-neutral-900" : "text-neutral-600 hover:text-neutral-900") }>
+							Dashboard
+						</a>
+						<a href="/history"
+							class={ "text-sm " + (vm.Active == "history" ? "font-semibold text-neutral-900" : "text-neutral-600 hover:text-neutral-900") }>
+							History
+						</a>
+						<a href="/account"
+							class={ "text-sm " + (vm.Active == "account" ? "font-semibold text-neutral-900" : "text-neutral-600 hover:text-neutral-900") }>
+							Account
+						</a>
+
+						<button
+							type="button"
+							class="text-sm text-neutral-600 hover:text-red-600"
+							x-on:click="$store.auth && $store.auth.logout ? $store.auth.logout() : (window.location.href='/login')">
+							Logout
+						</button>
+					</nav>
+
+					<!-- Right -->
+					<div class="flex items-center gap-3">
+						<!-- mobile menu -->
+						<div class="md:hidden relative" x-data="{ mobileMenuOpen: false }">
+							<button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-900"
+								x-on:click="mobileMenuOpen = !mobileMenuOpen">
+								<span class="material-symbols-outlined">menu</span>
+							</button>
+							<div x-show="mobileMenuOpen" x-cloak x-transition x-on:click.outside="mobileMenuOpen=false"
+								class="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+								<a href="/dashboard" class="block px-4 py-3 text-sm hover:bg-neutral-50">Dashboard</a>
+								<a href="/history" class="block px-4 py-3 text-sm hover:bg-neutral-50">History</a>
+								<a href="/account" class="block px-4 py-3 text-sm hover:bg-neutral-50">Account</a>
+								<a href="/qr-code" class="block px-4 py-3 text-sm hover:bg-neutral-50">QR Code</a>
+								<a href="/scanner" class="block px-4 py-3 text-sm hover:bg-neutral-50">Scanner</a>
+								<button type="button" class="block w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50"
+									x-on:click="$event.preventDefault(); if ($store.auth && $store.auth.logout) $store.auth.logout()">
+									Logout
+								</button>
+							</div>
+						</div>
+
+						<!-- avatar placeholder (your Alpine dashboardStore can bind a real url if you want) -->
+						<div class="h-10 w-10 rounded-full border border-neutral-200 bg-neutral-100"></div>
+					</div>
+				</div>
+			</header>
+
+			<!-- Page container -->
+			<main class="mx-auto w-full max-w-6xl px-4 py-8">
+				{ children... }
+			</main>
+
+			<footer class="border-t border-neutral-200 bg-white">
+				<div class="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-500">
+					<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+						<p>&copy; 2024 Hedgestone Carwash. All rights reserved.</p>
+						<div class="flex gap-4">
+							<a class="hover:text-neutral-900" href="/terms">Terms</a>
+							<a class="hover:text-neutral-900" href="/privacy">Privacy</a>
+							<a class="hover:text-neutral-900" href="/contact">Support</a>
+						</div>
+					</div>
+				</div>
+			</footer>
+		</div>
+	}
+}

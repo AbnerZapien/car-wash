@@ -120,7 +120,7 @@ func Index(vm IndexVM) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if os.Getenv("ENV") == "development" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<script defer type=\"module\" src=\"http://localhost:8080/src/main.js\"></script> <script defer type=\"module\" src=\"http://localhost:8080/@vite/client\"></script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<script defer type=\"module\" src=\"http://localhost:8080/src/main.ts\"></script> <script defer type=\"module\" src=\"http://localhost:8080/@vite/client\"></script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

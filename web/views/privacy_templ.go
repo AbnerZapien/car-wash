@@ -47,7 +47,23 @@ func Privacy(vm PrivacyVM) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-base-200 min-h-screen\"><div class=\"bg-white shadow-sm\"><div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between\"><a href=\"/\" class=\"text-xl font-bold text-gray-900\">Hedgestone Carwash</a><div class=\"hidden md:flex items-center gap-6\"><a class=\"text-accent hover:text-primary font-medium\" href=\"/about\">About</a> <a class=\"text-accent hover:text-primary font-medium\" href=\"/contact\">Contact</a> <a class=\"text-base text-gray-500 hover:text-gray-900\" href=\"/privacy\">Privacy</a> <a class=\"text-base text-gray-500 hover:text-gray-900\" href=\"/terms\">Terms</a> <a class=\"text-base text-gray-500 hover:text-gray-900\" href=\"/cookies\">Cookies</a></div></div></div><div class=\"bg-white\"><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16\"><h1 class=\"text-4xl font-extrabold text-gray-900\">Privacy Policy</h1><p class=\"mt-4 text-gray-600\">Last updated: January 9, 2026</p><div class=\"mt-10 space-y-6 text-gray-700 leading-relaxed\"><p>This Privacy Policy explains how Hedgestone Carwash collects, uses, and shares information when you use our Services.</p><section><h2 class=\"text-2xl font-bold text-gray-900\">Information we collect</h2><ul class=\"mt-3 list-disc list-inside space-y-2\"><li>Account information (e.g., name, email) if you register.</li><li>Usage and log data for security and performance.</li></ul></section><section><h2 class=\"text-2xl font-bold text-gray-900\">Cookies</h2><p class=\"mt-3\">See our <a class=\"text-blue-600 hover:underline\" href=\"/cookies\">Cookie Policy</a>.</p></section><section><h2 class=\"text-2xl font-bold text-gray-900\">Contact</h2><p class=\"mt-3\">Questions can be sent via our <a class=\"text-blue-600 hover:underline\" href=\"/contact\">Contact</a> page.</p></section></div></div></div><footer class=\"bg-white border-t border-gray-200\"><div class=\"max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8\"><p class=\"text-sm text-gray-500\">&copy; 2024 Hedgestone Carwash. All rights reserved.</p></div></footer></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-base-200 min-h-screen\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = PublicNavbar().Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"bg-white\"><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16\"><h1 class=\"text-4xl font-extrabold text-gray-900\">Privacy Policy</h1><p class=\"mt-4 text-gray-600\">Last updated: January 9, 2026</p><div class=\"mt-10 space-y-6 text-gray-700 leading-relaxed\"><p>This Privacy Policy explains how Hedgestone Carwash collects, uses, and shares information when you use our Services.</p><section><h2 class=\"text-2xl font-bold text-gray-900\">Information we collect</h2><ul class=\"mt-3 list-disc list-inside space-y-2\"><li>Account information (e.g., name, email) if you register.</li><li>Usage and log data for security and performance.</li></ul></section><section><h2 class=\"text-2xl font-bold text-gray-900\">Cookies</h2><p class=\"mt-3\">See our <a class=\"text-blue-600 hover:underline\" href=\"/cookies\">Cookie Policy</a>.</p></section><section><h2 class=\"text-2xl font-bold text-gray-900\">Contact</h2><p class=\"mt-3\">Questions can be sent via our <a class=\"text-blue-600 hover:underline\" href=\"/contact\">Contact</a> page.</p></section></div></div></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = PublicFooter().Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
