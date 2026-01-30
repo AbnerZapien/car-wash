@@ -1,22 +1,19 @@
-package users
+package views
 
-import (
-	templx "github.com/a-h/templ"
-	"github.com/edlingao/hexago/web/templates"
-)
+import "github.com/edlingao/hexago/web/templates"
 
 type UserShellVM struct {
 	Title string
 	Error error
 }
 
-templ UserShell(vm UserShellVM, body templx.Component) {
+templ UserShell(vm UserShellVM) {
 	@templates.Index(templates.IndexVM{
 		Title: vm.Title,
 		Error: vm.Error,
 	}) {
 		<div class="min-h-screen bg-black text-white">
-			@body
+			{ children... }
 		</div>
 	}
 }
