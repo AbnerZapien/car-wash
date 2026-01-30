@@ -1,0 +1,39 @@
+package users
+
+templ DashboardHeader(active string) {
+	<header class="flex items-center justify-between">
+		<a href="/" class="flex items-center gap-3">
+			<img src="/static/logo.svg" class="h-9 w-9" alt="Hedgestone"/>
+			<div class="leading-tight">
+				<div class="text-sm text-white/60 tracking-wide">Hedgestone</div>
+				<div class="text-lg font-semibold">Carwash</div>
+			</div>
+		</a>
+
+		<nav class="hidden md:flex items-center gap-8 text-sm">
+			if active == "dashboard" {
+				<a class="text-white font-semibold" href="/dashboard">Dashboard</a>
+			} else {
+				<a class="text-white/70 hover:text-white" href="/dashboard">Dashboard</a>
+			}
+
+			if active == "history" {
+				<a class="text-white font-semibold" href="/history">History</a>
+			} else {
+				<a class="text-white/70 hover:text-white" href="/history">History</a>
+			}
+
+			if active == "account" {
+				<a class="text-white font-semibold" href="/account">Account</a>
+			} else {
+				<a class="text-white/70 hover:text-white" href="/account">Account</a>
+			}
+
+			<button
+				@click="$store.auth && $store.auth.logout ? $store.auth.logout() : (window.location.href='/login')"
+				class="text-white/70 hover:text-red-400">
+				Logout
+			</button>
+		</nav>
+	</header>
+}
