@@ -8,18 +8,7 @@ templ ChoosePlan(vm ChoosePlanVM) {
 	@templates.Index(templates.IndexVM{Title: "Choose Plan - Hedgestone Carwash", Error: vm.Error}) {
 		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 		<div class="min-h-screen bg-slate-100" x-data="choosePlanStore()" x-init="init()">
-			<header class="bg-white border-b border-slate-200">
-				<div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-					<a href="/" class="flex items-center gap-3 text-slate-800">
-						<span class="material-symbols-outlined text-3xl text-blue-600">local_car_wash</span>
-						<span class="text-xl font-bold">Hedgestone Carwash</span>
-					</a>
-					<button class="text-slate-600 hover:text-red-600 text-sm font-medium"
-						@click="$store.auth && $store.auth.logout ? $store.auth.logout() : (window.location.href='/login')">
-						Logout
-					</button>
-				</div>
-			</header>
+			("choose-plan")
 
 			<main class="max-w-5xl mx-auto px-4 py-10">
 				<h1 class="text-3xl font-black text-slate-800">Choose your plan</h1>
