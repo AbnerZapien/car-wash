@@ -58,6 +58,60 @@ export function dashboardStore() {
     washHistory: [] as WashHistory[],
     loading: true,
     error: null as string | null,
+    async init() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const headers = authHeaders();
+
+        // Load user
+        const meRes = await fetch("/api/v1/me", { headers, credentials: "include" });
+        if (meRes.status === 401) throw new Error("Unauthorized");
+        const me = (await meRes.json()) as MeResponse;
+
+        this.user = {
+          id: String(me.id),
+          username: me.username,
+          email: me.email,
+          firstName: me.firstName,
+          lastName: me.lastName,
+          avatarUrl: me.avatarUrl,
+        } as any;
+
+        // Load subscription
+        const subRes = await fetch("/api/v1/me/subscription", { headers, credentials: "include" });
+        const sub = (await subRes.json().catch(() => null)) as SubResponse | null;
+        if (sub?.subscription) {
+          this.subscription = {
+            status: sub.subscription.status,
+            nextBillingDate: sub.subscription.nextBillingDate,
+            plan: { name: sub.subscription.planName },
+          };
+        } else {
+          this.subscription = null;
+        }
+
+        // Load history
+        const histRes = await fetch("/api/v1/me/history", { headers, credentials: "include" });
+        const hist = (await histRes.json().catch(() => ({ items: [] }))) as any;
+        const items: HistoryItem[] = hist?.items || hist?.history || [];
+        this.washHistory = items.map((w) => ({
+          id: w.id,
+          date: w.scannedAt,
+          location: w.locationName,
+        })) as any;
+      } catch (e: any) {
+        this.error = e?.message ?? "Failed to load dashboard";
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    get welcomeMessage(): string {
+      const name = (this.user as any)?.firstName || (this.user as any)?.username;
+      return name ? `Welcome back, ${name}!` : "Welcome back!";
+    },
+
 
     get planName(): string {
       return this.subscription?.plan?.name || 'No Plan';
@@ -77,123 +131,38 @@ export function dashboardStore() {
       return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     },
 
-    get welcomeMessage(): string {
-      if (!this.user) return 'Welcome back!';
-      return `Welcome back, ${this.user.firstName}!`;
+    // ----- UI helpers for the "Current Plan" card -----
+    get planStatusLabel(): string {
+      return this.isActive ? "Active" : "Inactive";
     },
 
-    async init() {
-      await this.loadDashboard();
+    // Matches: "Renews on March 15, 2026"
+    get planRenewsLabel(): string {
+      const d = this.nextBillingFormatted;
+      return d ? `Renews on ${d}` : "";
     },
 
-    async loadDashboard() {
-      this.loading = true;
-      this.error = null;
-
-      try {
-        const headers = authHeaders();
-
-        // 1) User
-        const meRes = await fetch('/api/v1/me', { headers, credentials: 'include' });
-        if (meRes.status === 401) throw new Error('Please sign in again.');
-        if (!meRes.ok) throw new Error('Failed to load profile');
-        const me = (await meRes.json()) as MeResponse;
-
-        this.user = {
-          id: String(me.id),
-          username: me.username,
-          email: me.email,
-          firstName: me.firstName,
-          lastName: me.lastName,
-          avatarUrl: me.avatarUrl,
-          createdAt: new Date(),
-          role: 'user',
-        } as any;
-
-        // 2) Subscription (for the plan card)
-        const subRes = await fetch('/api/v1/me/subscription', { headers, credentials: 'include' });
-        const subJson = (await subRes.json()) as SubResponse;
-
-        // Login guard: force plan selection if no active subscription
-        if (!subJson || !subJson.active || !subJson.subscription) {
-          window.location.href = '/choose-plan';
-          return;
-        }
-
-        if (subJson.subscription) {
-          let features: string[] = [];
-          try {
-            features = JSON.parse(subJson.subscription.featuresJson || '[]');
-          } catch {}
-
-          this.subscription = {
-            status: subJson.subscription.status,
-            nextBillingDate: subJson.subscription.nextBillingDate,
-            plan: {
-              name: subJson.subscription.planName,
-              price: (subJson.subscription.priceCents || 0) / 100,
-              features,
-            },
-          };
-        } else {
-          this.subscription = null;
-        }
-
-        // 3) History -> map wash_events into the old WashHistory UI shape
-        const histRes = await fetch('/api/v1/me/history', { headers, credentials: 'include' });
-        if (!histRes.ok) throw new Error('Failed to load history');
-        const data = await histRes.json();
-        const items: HistoryItem[] = (data.events || data.items || []);
-
-        this.washHistory = items.map((e) => {
-          const d = new Date(e.scannedAt);
-          const washType = e.result === 'allowed' ? 'Access Granted' : 'Access Denied';
-
-          return {
-            id: e.id,
-            washType,
-            result: e.result,
-            reason: e.reason,
-            location: {
-              name: e.locationName || e.locationId || 'Unknown location',
-              address: e.locationAddress || '',
-            },
-            date: d,
-            time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-          } as any;
-        });
-
-        // 4) QR for dashboard card
-        this.generateAccessCode();
-      } catch (e: any) {
-        this.error = e?.message ?? 'Failed to load dashboard';
-      } finally {
-        this.loading = false;
-      }
+    // Placeholder until plans support monthly limits (admin + API)
+    get monthlyWashesLabel(): string {
+      return "Unlimited";
     },
 
-    generateAccessCode() {
-      const uid = parseInt(String(this.user?.id || ''), 10);
-      if (!uid) {
-        this.accessCode = '';
-        this.accessQrUrl = '';
-        return;
-      }
-      this.accessCode = `CARWASH-${uid}-${Date.now()}`;
-      this.accessQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(this.accessCode)}`;
+    // Placeholder until /me returns createdAt (or we store it)
+    get memberSinceLabel(): string {
+      return "—";
     },
 
-    manageSubscription() {
-      window.location.assign('/account');
+    // Real now: compute number of washes in current month from washHistory
+    get thisMonthWashCount(): number {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth();
+      return (this.washHistory || []).filter((w: any) => {
+        const d = new Date(w.date);
+        return d.getFullYear() === y && d.getMonth() === m;
+      }).length;
     },
 
-    viewHistory() {
-      window.location.assign('/history');
-    },
-
-    printCode() {
-      window.print();
-    },
 
     formatWashDate(date: Date): string {
       const d = new Date(date);
