@@ -68,14 +68,6 @@ export function myCarsStore() {
     modalOpen: false,
     editingId: null as string | null,
     saving: false,
-
-    // Phase-2 required state (fixes your console errors)
-    decodingVin: false,
-    makeOpen: false,
-    makeSuggestions: [] as string[],
-    modelOpen: false,
-    modelSuggestions: [] as string[],
-
     form: {
       nickname: '',
       vin: '',

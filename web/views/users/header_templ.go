@@ -29,7 +29,7 @@ func DashboardHeader(active string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"flex items-center justify-between\"><a href=\"/\" class=\"flex items-center gap-3\"><img src=\"/static/logo.svg\" class=\"h-9 w-9\" alt=\"Hedgestone\"><div class=\"leading-tight\"><div class=\"text-sm text-white/60 tracking-wide\">Hedgestone</div><div class=\"text-lg font-semibold\">Carwash</div></div></a><nav class=\"hidden md:flex items-center gap-8 text-sm\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"flex items-center justify-between bg-black text-white px-4 py-4 rounded-xl border border-white\\/10\"><a href=\"/\" class=\"flex items-center gap-3\"><img src=\"/static/logo.svg\" class=\"h-9 w-9\" alt=\"Hedgestone\"><div class=\"leading-tight\"><div class=\"text-sm text-white/60 tracking-wide\">Hedgestone</div><div class=\"text-lg font-semibold\">Carwash</div></div></a><nav class=\"hidden md:flex items-center gap-8 text-sm\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
