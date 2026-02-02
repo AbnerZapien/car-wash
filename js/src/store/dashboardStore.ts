@@ -15,6 +15,24 @@ function authHeaders() {
   return token ? { 'X-Session-Token': token } : {};
 }
 
+
+// ---- QR helpers (easy to change later) ----
+const QR_SIZE = 240;
+
+// Central place to swap QR provider, size, etc.
+function qrUrlFromData(data: string) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&data=${encodeURIComponent(data)}`;
+}
+
+// Central place to decide what the QR "means".
+// Today: use latest rawQr from history if present; else fall back to "<userId>-demo".
+function deriveAccessCode(userId: number, items: any[]): string {
+  const latest = (items.find((i: any) => (i?.rawQr || "").trim())?.rawQr || "").trim();
+  if (latest) return latest;
+  // Fallback keeps UI working + matches scan parser expectations: "<id>-..."
+  return `${userId}-demo`;
+}
+
 type MeResponse = {
   id: number;
   username: string;
@@ -91,16 +109,38 @@ export function dashboardStore() {
           this.subscription = null;
         }
 
+        
         // Load history
         const histRes = await fetch("/api/v1/me/history", { headers, credentials: "include" });
         const hist = (await histRes.json().catch(() => ({ items: [] }))) as any;
         const items: HistoryItem[] = hist?.items || hist?.history || [];
-        this.washHistory = items.map((w) => ({
-          id: w.id,
-          date: w.scannedAt,
-          location: w.locationName,
-        })) as any;
+
+        // Use latest rawQr as the user's access code (for the QR card)
+        const code = deriveAccessCode(me.id, items as any);
+        this.accessCode = code;
+        this.accessQrUrl = qrUrlFromData(code);
+
+        // Normalize backend history items into the shape the dashboard template expects
+        this.washHistory = items.map((w: any) => {
+          const d = new Date(w.scannedAt);
+          const time = isNaN(d.getTime())
+            ? ""
+            : d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+          return {
+            id: w.id,
+            result: w.result, // allowed|denied
+            washType: w.result === "allowed" ? "Car Wash" : "Wash Attempt",
+            date: w.scannedAt,
+            time,
+            location: { name: w.locationName, address: w.locationAddress },
+            reason: w.reason,
+            rawQr: w.rawQr,
+          };
+        }) as any;
+
       } catch (e: any) {
+
         this.error = e?.message ?? "Failed to load dashboard";
       } finally {
         this.loading = false;
