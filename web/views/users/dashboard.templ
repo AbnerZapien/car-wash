@@ -84,45 +84,63 @@ templ Dashboard(vm DashboardVM) {
 								</div>
 							</div>
 
-						<div class="rounded-2xl bg-white/5 border border-white/10 p-6">
-							<div class="flex items-center justify-between">
-								<h2 class="text-xl font-semibold">Recent Washes</h2>
-								<a href="/history" class="text-sm text-white/70 hover:text-white">See all</a>
-							</div>
+							<div class="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+								<div class="p-10">
+									<div class="flex items-center justify-between">
+										<h2 class="text-4xl font-black tracking-tight text-slate-900">Recent Washes</h2>
+										<a href="/history" class="inline-flex items-center gap-2 text-lg font-semibold text-amber-700 hover:text-amber-800">
+											View All
+											<span class="material-symbols-outlined">arrow_right_alt</span>
+										</a>
+									</div>
 
-							<div class="mt-4 flex flex-col gap-3">
-								<template x-for="wash in recentWashes" :key="wash.id">
-									<div class="flex items-center justify-between rounded-xl bg-black/30 border border-white/10 p-4">
-										<div class="flex items-center gap-4 min-w-0">
-											<div class="flex h-11 w-11 items-center justify-center rounded-full bg-[#2F6BFF]/15 text-[#89A8FF] border border-[#2F6BFF]/20">
-												<span class="material-symbols-outlined">directions_car</span>
-											</div>
+									<div class="mt-8 flex flex-col gap-5">
+										<template x-for="wash in recentWashes" :key="wash.id">
+											<div class="rounded-3xl bg-slate-50 border border-slate-200 p-6">
+												<div class="flex items-center justify-between gap-6">
+													<div class="flex items-center gap-6 min-w-0">
+														<div class="h-16 w-16 rounded-2xl bg-black flex items-center justify-center shrink-0">
+															<span class="material-symbols-outlined text-amber-400 text-4xl"
+																x-text="wash.result === 'allowed' ? 'check' : 'close'"></span>
+														</div>
 
-											<div class="min-w-0">
-												<div class="flex items-center gap-2 min-w-0">
-													<span class="px-2.5 py-1 text-xs font-semibold rounded-full shrink-0 border"
-														:class="wash.result === 'allowed' ? 'bg-emerald-500/15 text-emerald-200 border-emerald-500/20' : 'bg-red-500/15 text-red-200 border-red-500/20'"
-														x-text="wash.result === 'allowed' ? 'Allowed' : 'Denied'"></span>
-													<p class="font-semibold truncate" x-text="wash.washType"></p>
+														<div class="min-w-0">
+															<div class="text-2xl font-black text-slate-900 truncate" x-text="wash.washType"></div>
+
+															<div class="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-500 font-semibold">
+																<div class="inline-flex items-center gap-2">
+																	<span class="material-symbols-outlined text-slate-400">calendar_month</span>
+																	<span x-text="formatWashDate(wash.date)"></span>
+																</div>
+
+																<div class="inline-flex items-center gap-2">
+																	<span class="material-symbols-outlined text-slate-400">schedule</span>
+																	<span x-text="wash.time"></span>
+																</div>
+
+																<div class="inline-flex items-center gap-2 min-w-0">
+																	<span class="material-symbols-outlined text-slate-400">location_on</span>
+																	<span class="truncate"
+																		x-text="(wash.location && wash.location.name ? wash.location.name : '') + ((wash.location && wash.location.address) ? ' - ' + wash.location.address : '')"></span>
+																</div>
+															</div>
+														</div>
+													</div>
+
+													<span class="px-6 py-2 rounded-full text-lg font-semibold shrink-0"
+														:class="wash.result === 'allowed' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
+														x-text="wash.result === 'allowed' ? 'Completed' : 'Denied'"></span>
 												</div>
-												<p class="text-sm text-white/60 truncate" x-text="wash.location.name"></p>
 											</div>
-										</div>
+										</template>
 
-										<div class="text-right shrink-0">
-											<p class="text-white/90 font-medium" x-text="formatWashDate(wash.date)"></p>
-											<p class="text-sm text-white/60" x-text="wash.time"></p>
+										<div x-show="recentWashes.length === 0" class="rounded-3xl bg-white border border-slate-200 p-10 text-center text-slate-500">
+											No recent washes found.
 										</div>
 									</div>
-								</template>
-
-								<div x-show="recentWashes.length === 0" class="rounded-xl bg-black/30 border border-white/10 p-8 text-center text-white/60">
-									No recent washes found.
 								</div>
 							</div>
-						</div>
 					</div>
-
 					<div class="rounded-2xl bg-white/5 border border-white/10 p-6 flex flex-col items-center justify-center gap-4">
 						<div class="text-xs uppercase tracking-widest text-white/60">Access</div>
 						<h3 class="text-xl font-semibold">Your Wash Code</h3>

@@ -15,6 +15,12 @@ function authHeaders() {
   return token ? { 'X-Session-Token': token } : {};
 }
 
+function buildAccessCode(userId: string): string {
+  // Keep this stable + easy to change later
+  return `${userId}-access`;
+}
+
+
 
 // ---- QR helpers (easy to change later) ----
 const QR_SIZE = 240;
@@ -113,12 +119,12 @@ export function dashboardStore() {
         // Load history
         const histRes = await fetch("/api/v1/me/history", { headers, credentials: "include" });
         const hist = (await histRes.json().catch(() => ({ items: [] }))) as any;
-        const items: HistoryItem[] = hist?.items || hist?.history || [];
+        const items: HistoryItem[] = hist?.items || hist?.events || hist?.history || [];
 
         // Use latest rawQr as the user's access code (for the QR card)
         const code = deriveAccessCode(me.id, items as any);
-        this.accessCode = code;
-        this.accessQrUrl = qrUrlFromData(code);
+        this.accessCode = (code || buildAccessCode(String(me.id)));
+        this.accessQrUrl = qrUrlFromData(this.accessCode);
 
         // Normalize backend history items into the shape the dashboard template expects
         this.washHistory = items.map((w: any) => {
