@@ -111,13 +111,6 @@ templ Portal(vm PortalVM) {
 							{ id: 'plans', icon: 'sell', label: 'Plans' },
 							{ id: 'locations', icon: 'place', label: 'Locations' },
 							{ id: 'audit', icon: 'history', label: 'Audit' },
-						{ id: 'usage', icon: 'directions_car', label: 'Usage' },
-						{ id: 'attrition', icon: 'trending_down', label: 'Attrition' },
-						{ id: 'attendants', icon: 'support_agent', label: 'Attendants' },
-						{ id: 'promotions', icon: 'campaign', label: 'Promotions' },
-						{ id: 'revenue', icon: 'assessment', label: 'Revenue' },
-						{ id: 'income', icon: 'paid', label: 'Income' },
-						{ id: 'widget', icon: 'widgets', label: 'Widget' }
 					]" :key="item.id">
 						<a
 							@click.prevent="navigate(item.id); sidebarOpen = false"
