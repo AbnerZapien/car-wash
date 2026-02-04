@@ -50,18 +50,11 @@ export function choosePlanStore() {
       return this.plans.find((p) => p.id === this.selectedPlanId) || null;
     },
 
-    get priceLabel(): string {
-      const p = this.selectedPlan;
-      if (!p) return '';
-      return `$${((p.priceCents || 0) / 100).toFixed(2)}/mo`;
-    },
-
-    
     formatPrice(cents: number) {
-      return `$${((cents || 0) / 100).toFixed(2)}/mo`;
+      return `$${((cents || 0) / 100).toFixed(2)}`;
     },
 
-async save() {
+    async save() {
       if (!this.selectedPlanId) {
         this.error = 'Select a plan first';
         return;
