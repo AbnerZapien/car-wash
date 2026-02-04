@@ -40,12 +40,13 @@ func (m *MeAPIService) RegisterRoutes() {
 }
 
 type meRow struct {
-	ID        int    `db:"id" json:"id"`
-	Username  string `db:"username" json:"username"`
-	Email     string `db:"email" json:"email"`
-	FirstName string `db:"first_name" json:"firstName"`
-	LastName  string `db:"last_name" json:"lastName"`
-	AvatarURL string `db:"avatar_url" json:"avatarUrl"`
+	ID        int       `db:"id" json:"id"`
+	Username  string    `db:"username" json:"username"`
+	Email     string    `db:"email" json:"email"`
+	FirstName string    `db:"first_name" json:"firstName"`
+	LastName  string    `db:"last_name" json:"lastName"`
+	AvatarURL string    `db:"avatar_url" json:"avatarUrl"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 }
 
 type updateMeRequest struct {
@@ -75,7 +76,7 @@ func (m *MeAPIService) GetMe(c echo.Context) error {
 	}
 
 	var u meRow
-	if err := m.db.Get(&u, m.db.Rebind(`SELECT id, username, email, first_name, last_name, avatar_url FROM users WHERE id = ? LIMIT 1`), uid); err != nil {
+	if err := m.db.Get(&u, m.db.Rebind(`SELECT id, username, email, first_name, last_name, avatar_url, created_at FROM users WHERE id = ? LIMIT 1`), uid); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, u)
@@ -121,7 +122,7 @@ func (m *MeAPIService) UpdateMe(c echo.Context) error {
 	}
 
 	var u meRow
-	_ = m.db.Get(&u, m.db.Rebind(`SELECT id, username, email, first_name, last_name, avatar_url FROM users WHERE id = ? LIMIT 1`), uid)
+	_ = m.db.Get(&u, m.db.Rebind(`SELECT id, username, email, first_name, last_name, avatar_url, created_at FROM users WHERE id = ? LIMIT 1`), uid)
 	return c.JSON(http.StatusOK, u)
 }
 
