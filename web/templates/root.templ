@@ -19,7 +19,15 @@ templ Index(vm IndexVM) {
 			} else {
 				<link rel="stylesheet" href="/static/dist/hexagonal.css"/>
 			}
-			<link rel="icon" href="/static/favicon.svg" type="image/svg"/>
+			<link rel="icon" href="/static/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png"/>
+<link rel="manifest" href="/static/site.webmanifest"/>
+<meta name="theme-color" content="#182050"/>
+<meta property="og:image" content="/static/og-image.png"/>
+<meta name="twitter:image" content="/static/og-image.png"/>
 			<title>{ vm.Title }</title>
 		</head>
 		<body class={ vm.BodyClass }>
