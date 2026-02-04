@@ -18,7 +18,7 @@ templ Dashboard(vm DashboardVM) {
 				<section class="mt-10">
 					<div class="flex flex-col gap-2">
 						<div class="text-4xl font-semibold tracking-tight" x-text="welcomeMessage">Welcome back!</div>
-						<div class="text-white/60">Here is an overview of your carwash subscription.</div>
+						<div class="text-slate-500">Here is an overview of your carwash subscription.</div>
 					</div>
 				</section>
 
@@ -53,20 +53,20 @@ templ Dashboard(vm DashboardVM) {
 									<div class="mt-8 grid grid-cols-1 md:grid-cols-3">
 										<div class="pl-4 border-l-4 border-amber-500">
 											<div class="text-slate-500 font-medium leading-relaxed">Monthly Washes</div>
-											<div class="mt-2 text-5xl font-black tracking-tight text-slate-900" x-text="monthlyWashesLabel">Unlimited</div>
+											<div class="mt-2 text-4xl font-black tracking-tight leading-none text-slate-900" x-text="monthlyWashesLabel">Unlimited</div>
 										</div>
 
 										<div class="mt-6 md:mt-0 md:px-10 md:border-l md:border-slate-200">
 											<div class="text-slate-500 font-medium leading-relaxed">This Month</div>
 											<div class="mt-2 flex items-baseline gap-2">
-												<div class="text-5xl font-black tracking-tight text-slate-900" x-text="thisMonthWashCount ?? '—'">12</div>
+												<div class="text-4xl font-black tracking-tight leading-none text-slate-900" x-text="thisMonthWashCount ?? '—'">12</div>
 												<div class="text-2xl font-semibold text-slate-400">washes</div>
 											</div>
 										</div>
 
 										<div class="mt-6 md:mt-0 md:px-10 md:border-l md:border-slate-200">
 											<div class="text-slate-500 font-medium leading-relaxed">Member Since</div>
-											<div class="mt-2 text-5xl font-black tracking-tight text-slate-900" x-text="memberSinceLabel">Jan 2024</div>
+											<div class="mt-2 text-4xl font-black tracking-tight leading-none text-slate-900" x-text="memberSinceLabel">Jan 2024</div>
 										</div>
 									</div>
 
@@ -75,52 +75,47 @@ templ Dashboard(vm DashboardVM) {
 											<span class="material-symbols-outlined">settings</span>
 											Manage Subscription
 										</a>
-
-										<a href="/history" class="h-14 px-10 rounded-2xl bg-white text-slate-900 font-black border-2 border-slate-900 flex items-center gap-3">
-											<span class="material-symbols-outlined">history</span>
-											Wash History
-										</a>
 									</div>
 								</div>
 							</div>
 
 							<div class="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-								<div class="p-10">
+								<div class="p-8">
 									<div class="flex items-center justify-between">
-										<h2 class="text-2xl font-extrabold tracking-tight text-slate-900">Recent Washes</h2>
-										<a href="/history" class="inline-flex items-center gap-2 text-lg font-semibold text-amber-700 hover:text-amber-800">
+										<h2 class="text-xl font-semibold tracking-tight text-slate-900">Recent Washes</h2>
+										<a href="/history" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-700 hover:text-amber-800">
 											View All
 											<span class="material-symbols-outlined">arrow_right_alt</span>
 										</a>
 									</div>
 
-									<div class="mt-8 rounded-3xl border border-slate-100 bg-slate-50/50 p-6">
-									<div class="flex flex-col gap-6">
+									<div class="mt-6 rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
+									<div class="flex flex-col gap-4">
 										<template x-for="wash in recentWashes" :key="wash.id">
-											<div class="rounded-3xl bg-white border border-slate-200/60 shadow-sm p-5">
+											<div class="rounded-2xl bg-white border border-slate-200/60 shadow-sm p-4">
 												<div class="flex items-center justify-between gap-6">
 													<div class="flex items-center gap-6 min-w-0">
-														<div class="h-14 w-14 rounded-2xl bg-black flex items-center justify-center shrink-0">
-															<span class="material-symbols-outlined text-amber-400 text-2xl"
+														<div class="h-12 w-12 rounded-xl bg-black flex items-center justify-center shrink-0">
+															<span class="material-symbols-outlined text-amber-400 text-xl"
 																x-text="wash.result === 'allowed' ? 'check' : 'close'"></span>
 														</div>
 
 														<div class="min-w-0">
-															<div class="text-lg font-semibold text-slate-900 truncate" x-text="wash.washType"></div>
+															<div class="text-base font-semibold text-slate-900 truncate" x-text="wash.washType"></div>
 
-															<div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 font-medium text-sm leading-normal">
+															<div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 font-medium text-xs leading-normal">
 																<div class="inline-flex items-center gap-2">
-																	<span class="material-symbols-outlined text-slate-400 text-lg">calendar_month</span>
+																	<span class="material-symbols-outlined text-slate-400 text-base">calendar_month</span>
 																	<span x-text="formatWashDate(wash.date)"></span>
 																</div>
 
 																<div class="inline-flex items-center gap-2">
-																	<span class="material-symbols-outlined text-slate-400 text-lg">schedule</span>
+																	<span class="material-symbols-outlined text-slate-400 text-base">schedule</span>
 																	<span x-text="wash.time"></span>
 																</div>
 
 																<div class="inline-flex items-center gap-2 min-w-0">
-																	<span class="material-symbols-outlined text-slate-400 text-lg">location_on</span>
+																	<span class="material-symbols-outlined text-slate-400 text-base">location_on</span>
 																	<span class="truncate"
 																		x-text="(wash.location && wash.location.name ? wash.location.name : '') + ((wash.location && wash.location.address) ? ' - ' + wash.location.address : '')"></span>
 																</div>
@@ -128,14 +123,14 @@ templ Dashboard(vm DashboardVM) {
 														</div>
 													</div>
 
-													<span class="px-4 py-1.5 rounded-full text-sm font-semibold shrink-0"
+													<span class="px-3 py-1 rounded-full text-xs font-semibold shrink-0"
 														:class="wash.result === 'allowed' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
 														x-text="wash.result === 'allowed' ? 'Completed' : 'Denied'"></span>
 												</div>
 											</div>
 										</template>
 
-										<div x-show="recentWashes.length === 0" class="rounded-3xl bg-white border border-slate-200 p-10 text-center text-slate-500">
+										<div x-show="recentWashes.length === 0" class="rounded-2xl bg-white border border-slate-200 p-8 text-center text-slate-500">
 											No recent washes found.
 										</div>
 									</div>
@@ -143,35 +138,39 @@ templ Dashboard(vm DashboardVM) {
 								</div>
 							</div>
 					</div>
-					<div class="rounded-2xl bg-white/5 border border-white/10 p-6 flex flex-col items-center justify-center gap-4">
-						<div class="text-xs uppercase tracking-widest text-white/60">Access</div>
-						<h3 class="text-xl font-semibold">Your Wash Code</h3>
-						<p class="text-white/60 text-center text-sm">Present this code at the carwash entrance to start your wash.</p>
+					<div class="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+	<div class="p-8">
+		<h3 class="text-xl font-semibold tracking-tight text-slate-900">Your Wash Access Code</h3>
+		<p class="mt-2 text-sm text-slate-500">Present this code at the carwash entrance to start your wash.</p>
 
-						<div class="p-4 rounded-xl bg-black/30 border border-white/10">
-							<a href="/qr-code">
-								<img x-show="accessQrUrl" class="rounded-lg w-48 h-48" :src="accessQrUrl" alt="QR code for car wash access"/>
-							</a>
-						</div>
+		<div class="mt-6 rounded-2xl bg-slate-900 p-6 flex flex-col items-center">
+			<a href="/qr-code" class="block rounded-2xl bg-white p-3">
+				<img x-show="accessQrUrl" class="rounded-xl w-48 h-48" :src="accessQrUrl" alt="QR code for car wash access"/>
+			</a>
+			<div class="mt-4 text-xs text-slate-300">Scan at any Hedgestone Carwash location</div>
+		</div>
 
-						<a href="/qr-code" class="w-full h-11 rounded-xl bg-[#2F6BFF] hover:bg-[#295FE0] text-white font-semibold flex items-center justify-center gap-2">
-							<span class="material-symbols-outlined">qr_code_2</span>
-							View Full Code
-						</a>
+		<div class="mt-6 space-y-3">
+			<a href="/qr-code" class="w-full h-11 rounded-xl bg-black hover:bg-slate-800 text-white font-semibold flex items-center justify-center gap-2">
+				<span class="material-symbols-outlined">qr_code_2</span>
+				View Full Code
+			</a>
 
-						<button @click="printCode" class="w-full h-11 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-semibold flex items-center justify-center gap-2">
-							<span class="material-symbols-outlined">print</span>
-							Print Code
-						</button>
-					</div>
+			<button @click="printCode" class="w-full h-11 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-semibold flex items-center justify-center gap-2">
+				<span class="material-symbols-outlined">print</span>
+				Print Code
+			</button>
+		</div>
+	</div>
+</div>
 				</div>
 
-				<footer class="mt-12 border-t border-white/10 pt-8 text-center text-sm text-white/50">
+				<footer class="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
 					<div>© 2024 Hedgestone Carwash. All rights reserved.</div>
 					<div class="mt-2 flex justify-center gap-4">
-						<a class="text-[#89A8FF] hover:underline" href="/terms">Terms</a>
-						<a class="text-[#89A8FF] hover:underline" href="/privacy">Privacy</a>
-						<a class="text-[#89A8FF] hover:underline" href="/contact">Support</a>
+						<a class="text-slate-600 hover:text-slate-900 hover:underline" href="/terms">Terms</a>
+						<a class="text-slate-600 hover:text-slate-900 hover:underline" href="/privacy">Privacy</a>
+						<a class="text-slate-600 hover:text-slate-900 hover:underline" href="/contact">Support</a>
 					</div>
 				</footer>
 			</div>
