@@ -96,30 +96,30 @@ templ Dashboard(vm DashboardVM) {
 
 									<div class="mt-8 flex flex-col gap-6">
 										<template x-for="wash in recentWashes" :key="wash.id">
-											<div class="rounded-3xl bg-white border border-slate-100 shadow-[0_0_0_1px_rgba(15,23,42,0.03),0_8px_24px_rgba(15,23,42,0.06)] p-10">
+											<div class="rounded-3xl bg-white border border-slate-100 shadow-sm p-6">
 												<div class="flex items-center justify-between gap-6">
 													<div class="flex items-center gap-6 min-w-0">
-														<div class="h-16 w-16 rounded-3xl bg-black flex items-center justify-center shrink-0">
-															<span class="material-symbols-outlined text-amber-400 text-3xl"
+														<div class="h-14 w-14 rounded-2xl bg-black flex items-center justify-center shrink-0">
+															<span class="material-symbols-outlined text-amber-400 text-2xl"
 																x-text="wash.result === 'allowed' ? 'check' : 'close'"></span>
 														</div>
 
 														<div class="min-w-0">
-															<div class="text-2xl font-bold text-slate-900 truncate" x-text="wash.washType"></div>
+															<div class="text-xl font-semibold text-slate-900 truncate" x-text="wash.washType"></div>
 
-															<div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-slate-500 font-medium leading-relaxed">
+															<div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 font-medium text-sm leading-normal">
 																<div class="inline-flex items-center gap-2">
-																	<span class="material-symbols-outlined text-slate-400">calendar_month</span>
+																	<span class="material-symbols-outlined text-slate-400 text-lg">calendar_month</span>
 																	<span x-text="formatWashDate(wash.date)"></span>
 																</div>
 
 																<div class="inline-flex items-center gap-2">
-																	<span class="material-symbols-outlined text-slate-400">schedule</span>
+																	<span class="material-symbols-outlined text-slate-400 text-lg">schedule</span>
 																	<span x-text="wash.time"></span>
 																</div>
 
 																<div class="inline-flex items-center gap-2 min-w-0">
-																	<span class="material-symbols-outlined text-slate-400">location_on</span>
+																	<span class="material-symbols-outlined text-slate-400 text-lg">location_on</span>
 																	<span class="truncate"
 																		x-text="(wash.location && wash.location.name ? wash.location.name : '') + ((wash.location && wash.location.address) ? ' - ' + wash.location.address : '')"></span>
 																</div>
@@ -127,8 +127,8 @@ templ Dashboard(vm DashboardVM) {
 														</div>
 													</div>
 
-													<span class="px-5 py-2 rounded-full text-base font-semibold shrink-0"
-														:class="wash.result === 'allowed' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700'"
+													<span class="px-4 py-1.5 rounded-full text-sm font-semibold shrink-0"
+														:class="wash.result === 'allowed' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
 														x-text="wash.result === 'allowed' ? 'Completed' : 'Denied'"></span>
 												</div>
 											</div>
