@@ -25,8 +25,8 @@ templ Dashboard(vm DashboardVM) {
 				<div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
 					<div class="lg:col-span-2 flex flex-col gap-4">
 							<div class="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-								<div class="p-8">
-									<div class="flex items-start justify-between gap-8">
+								<div class="p-6 sm:p-8">
+									<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 sm:gap-10">
 										<div class="flex items-start gap-5">
 											<div class="h-14 w-14 rounded-2xl bg-amber-50 flex items-center justify-center">
 												<span class="material-symbols-outlined text-amber-600 text-2xl">workspace_premium</span>
@@ -45,8 +45,8 @@ templ Dashboard(vm DashboardVM) {
 											</div>
 										</div>
 
-										<div class="h-40 w-40 rounded-3xl bg-gradient-to-b from-amber-400 to-amber-600 shadow-md flex items-center justify-center shrink-0">
-											<span class="material-symbols-outlined text-white text-6xl">star</span>
+										<div class="h-24 w-24 sm:h-40 sm:w-40 rounded-3xl bg-gradient-to-b from-amber-400 to-amber-600 shadow-md flex items-center justify-center shrink-0 self-start sm:self-auto">
+											<span class="material-symbols-outlined text-white text-4xl sm:text-6xl">star</span>
 										</div>
 									</div>
 
@@ -80,7 +80,7 @@ templ Dashboard(vm DashboardVM) {
 							</div>
 
 							<div class="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-								<div class="p-8">
+								<div class="p-6 sm:p-8">
 									<div class="flex items-center justify-between">
 										<h2 class="text-xl font-semibold tracking-tight text-slate-900">Recent Washes</h2>
 										<a href="/history" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-700 hover:text-amber-800">
@@ -93,29 +93,29 @@ templ Dashboard(vm DashboardVM) {
 									<div class="flex flex-col gap-4">
 										<template x-for="wash in recentWashes" :key="wash.id">
 											<div class="rounded-2xl bg-white border border-slate-200/60 shadow-sm p-4">
-												<div class="flex items-center justify-between gap-6">
-													<div class="flex items-center gap-6 min-w-0">
+												<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
+													<div class="flex items-center gap-4 min-w-0">
 														<div class="h-12 w-12 rounded-xl bg-black flex items-center justify-center shrink-0">
 															<span class="material-symbols-outlined text-amber-400 text-xl"
 																x-text="wash.result === 'allowed' ? 'check' : 'close'"></span>
 														</div>
 
 														<div class="min-w-0">
-															<div class="text-base font-semibold text-slate-900 truncate" x-text="wash.washType"></div>
+															<div class="text-lg sm:text-base font-semibold text-slate-900 truncate" x-text="wash.washType"></div>
 
-															<div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 font-medium text-xs leading-normal">
+															<div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 font-medium text-sm sm:text-xs leading-normal">
 																<div class="inline-flex items-center gap-2">
-																	<span class="material-symbols-outlined text-slate-400 text-base">calendar_month</span>
+																	<span class="material-symbols-outlined text-slate-400 text-lg sm:text-base">calendar_month</span>
 																	<span x-text="formatWashDate(wash.date)"></span>
 																</div>
 
 																<div class="inline-flex items-center gap-2">
-																	<span class="material-symbols-outlined text-slate-400 text-base">schedule</span>
+																	<span class="material-symbols-outlined text-slate-400 text-lg sm:text-base">schedule</span>
 																	<span x-text="wash.time"></span>
 																</div>
 
 																<div class="inline-flex items-center gap-2 min-w-0">
-																	<span class="material-symbols-outlined text-slate-400 text-base">location_on</span>
+																	<span class="material-symbols-outlined text-slate-400 text-lg sm:text-base">location_on</span>
 																	<span class="truncate"
 																		x-text="(wash.location && wash.location.name ? wash.location.name : '') + ((wash.location && wash.location.address) ? ' - ' + wash.location.address : '')"></span>
 																</div>
@@ -123,7 +123,7 @@ templ Dashboard(vm DashboardVM) {
 														</div>
 													</div>
 
-													<span class="px-3 py-1 rounded-full text-xs font-semibold shrink-0"
+													<span class="px-3 py-1.5 rounded-full text-sm sm:text-xs font-semibold shrink-0 self-start sm:self-auto"
 														:class="wash.result === 'allowed' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
 														x-text="wash.result === 'allowed' ? 'Completed' : 'Denied'"></span>
 												</div>
@@ -139,7 +139,7 @@ templ Dashboard(vm DashboardVM) {
 							</div>
 					</div>
 					<div class="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-	<div class="p-8">
+	<div class="p-6 sm:p-8">
 		<h3 class="text-xl font-semibold tracking-tight text-slate-900 text-center">Your Wash Access Code</h3>
 		<p class="mt-2 text-sm text-slate-500 text-center">Present this code at the carwash entrance to start your wash.</p>
 
