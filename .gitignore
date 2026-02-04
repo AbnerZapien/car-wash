@@ -28,3 +28,7 @@ js/vite.config.ts
 db/test.db
 
 *.bak_*
+
+# local backups
+*.bak
+*.bak.*
