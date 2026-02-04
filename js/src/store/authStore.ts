@@ -124,7 +124,7 @@ export function authStore() {
           firstName: u.firstName ?? '',
           lastName: u.lastName ?? '',
           avatarUrl: u.avatarUrl ?? '',
-          createdAt: new Date(),
+          createdAt: new Date((u.createdAt ?? u.created_at) || Date.now()),
           role: u.username === 'admin' ? 'admin' : 'user',
         };
 
@@ -190,7 +190,7 @@ export function authStore() {
           firstName: this.firstName.trim(),
           lastName: this.lastName.trim(),
           avatarUrl: '',
-          createdAt: new Date(),
+          createdAt: new Date((u.createdAt ?? u.created_at) || Date.now()),
           role: 'user',
         };
 

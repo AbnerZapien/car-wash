@@ -195,8 +195,13 @@ export function dashboardStore() {
 
     // Placeholder until /me returns createdAt (or we store it)
     get memberSinceLabel(): string {
-      return "—";
-    },
+  const auth = (window as any).Alpine?.store?.('auth');
+  const raw = auth?.currentUser?.createdAt;
+  const d = raw ? new Date(raw) : null;
+  if (!d || Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(d);
+},
+
 
     // Real now: compute number of washes in current month from washHistory
     get thisMonthWashCount(): number {
