@@ -29,7 +29,7 @@ func DashboardHeader(active string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"bg-white border-b border-slate-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8\"><div class=\"flex h-16 items-center justify-between\"><a href=\"/dashboard\" class=\"flex items-center gap-3\"><img src=\"/static/logo.svg\" class=\"h-9 w-9\" alt=\"Hedgestone\"><div class=\"leading-tight\"><div class=\"text-xs text-slate-500 tracking-wide\">Hedgestone</div><div class=\"text-base font-semibold text-slate-900\">Carwash</div></div></a><nav class=\"hidden md:flex items-center gap-10 text-sm font-medium text-slate-600\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"bg-white border-b border-slate-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8\"><div class=\"flex h-24 items-center justify-between\"><a href=\"/dashboard\" class=\"flex items-center gap-3\"><img src=\"/static/logo.svg\" class=\"h-16 w-16 md:h-24 md:w-24 shrink-0\" alt=\"Hedgestone\"><div class=\"leading-tight\"><div class=\"text-sm text-slate-500 tracking-wide\">Hedgestone</div><div class=\"text-2xl font-semibold text-slate-900\">Carwash</div></div></a><nav class=\"hidden md:flex items-center gap-10 text-sm font-medium text-slate-600\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
