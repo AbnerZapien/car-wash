@@ -140,14 +140,14 @@ templ Dashboard(vm DashboardVM) {
 					</div>
 					<div class="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
 	<div class="p-8">
-		<h3 class="text-xl font-semibold tracking-tight text-slate-900">Your Wash Access Code</h3>
-		<p class="mt-2 text-sm text-slate-500">Present this code at the carwash entrance to start your wash.</p>
+		<h3 class="text-xl font-semibold tracking-tight text-slate-900 text-center">Your Wash Access Code</h3>
+		<p class="mt-2 text-sm text-slate-500 text-center">Present this code at the carwash entrance to start your wash.</p>
 
 		<div class="mt-6 rounded-2xl bg-slate-900 p-6 flex flex-col items-center">
 			<a href="/qr-code" class="block rounded-2xl bg-white p-3">
 				<img x-show="accessQrUrl" class="rounded-xl w-48 h-48" :src="accessQrUrl" alt="QR code for car wash access"/>
 			</a>
-			<div class="mt-4 text-xs text-slate-300">Scan at any Hedgestone Carwash location</div>
+			<div class="mt-4 text-xs text-slate-300 text-center">Scan at any Hedgestone Carwash location</div>
 		</div>
 
 		<div class="mt-6 space-y-3">
