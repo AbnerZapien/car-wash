@@ -29,44 +29,44 @@ func DashboardHeader(active string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"flex items-center justify-between bg-black text-white px-4 py-4 rounded-xl border border-white\\/10\"><a href=\"/\" class=\"flex items-center gap-3\"><img src=\"/static/logo.svg\" class=\"h-9 w-9\" alt=\"Hedgestone\"><div class=\"leading-tight\"><div class=\"text-sm text-white/60 tracking-wide\">Hedgestone</div><div class=\"text-lg font-semibold\">Carwash</div></div></a><nav class=\"hidden md:flex items-center gap-8 text-sm\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"bg-white border-b border-slate-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8\"><div class=\"flex h-16 items-center justify-between\"><a href=\"/dashboard\" class=\"flex items-center gap-3\"><img src=\"/static/logo.svg\" class=\"h-9 w-9\" alt=\"Hedgestone\"><div class=\"leading-tight\"><div class=\"text-xs text-slate-500 tracking-wide\">Hedgestone</div><div class=\"text-base font-semibold text-slate-900\">Carwash</div></div></a><nav class=\"hidden md:flex items-center gap-10 text-sm font-medium text-slate-600\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if active == "dashboard" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<a class=\"text-white font-semibold\" href=\"/dashboard\">Dashboard</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<a class=\"h-16 flex items-center border-b-2 border-amber-500 text-slate-900\" href=\"/dashboard\">Dashboard</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<a class=\"text-white/70 hover:text-white\" href=\"/dashboard\">Dashboard</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<a class=\"h-16 flex items-center border-b-2 border-transparent hover:text-slate-900\" href=\"/dashboard\">Dashboard</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if active == "history" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<a class=\"text-white font-semibold\" href=\"/history\">History</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<a class=\"h-16 flex items-center border-b-2 border-amber-500 text-slate-900\" href=\"/history\">History</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<a class=\"text-white/70 hover:text-white\" href=\"/history\">History</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<a class=\"h-16 flex items-center border-b-2 border-transparent hover:text-slate-900\" href=\"/history\">History</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if active == "account" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<a class=\"text-white font-semibold\" href=\"/account\">Account</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<a class=\"h-16 flex items-center border-b-2 border-amber-500 text-slate-900\" href=\"/account\">Account</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<a class=\"text-white/70 hover:text-white\" href=\"/account\">Account</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<a class=\"h-16 flex items-center border-b-2 border-transparent hover:text-slate-900\" href=\"/account\">Account</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<button @click=\"$store.auth && $store.auth.logout ? $store.auth.logout() : (window.location.href='/login')\" class=\"text-white/70 hover:text-red-400\">Logout</button></nav></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<button @click=\"$store.auth && $store.auth.logout ? $store.auth.logout() : (window.location.href='/login')\" class=\"h-16 flex items-center border-b-2 border-transparent hover:text-red-600\">Logout</button></nav><div class=\"flex items-center gap-3\"><button class=\"h-10 w-10 rounded-full hover:bg-slate-100 flex items-center justify-center\" aria-label=\"Notifications\"><span class=\"material-symbols-outlined text-slate-700\">notifications</span></button> <a href=\"/account\" class=\"h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center\" aria-label=\"Account\"><span class=\"material-symbols-outlined text-slate-700\">person</span></a></div></div></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
