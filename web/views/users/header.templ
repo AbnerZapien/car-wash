@@ -1,7 +1,7 @@
 package users
 
 templ DashboardHeader(active string) {
-	<header class="bg-white border-b border-slate-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+	<header class="bg-white border-b border-slate-200 -mx-4 sm:-mx-6 lg:-mx-8 pl-4 pr-0 sm:px-6 lg:px-8" x-data="{ open: false }">
 		<div class="flex h-24 items-center justify-between">
 			<a href="/dashboard" class="flex items-center gap-3">
 				<img src="/static/logo.svg" class="h-16 w-16 md:h-24 md:w-24 shrink-0" alt="Hedgestone"/>
@@ -37,15 +37,41 @@ templ DashboardHeader(active string) {
 				</button>
 			</nav>
 
-			<div class="flex items-center gap-3">
-				<button class="h-10 w-10 rounded-full hover:bg-slate-100 flex items-center justify-center" aria-label="Notifications">
-					<span class="material-symbols-outlined text-slate-700">notifications</span>
+			<div class="md:hidden -mr-6 relative">
+				<button @click="open=!open" class="h-10 w-10 rounded-lg border border-slate-200 bg-white flex items-center justify-center -mr-4">
+					<span class="material-symbols-outlined text-slate-800">menu</span>
 				</button>
 
-				<a href="/account" class="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center" aria-label="Account">
-					<span class="material-symbols-outlined text-slate-700">person</span>
-				</a>
+				<div x-show="open" x-cloak x-transition @click.outside="open=false"
+					class="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-lg border border-slate-200 overflow-hidden z-50">
+					if active == "dashboard" {
+						<a class="block px-4 py-3 bg-slate-50 text-slate-900 font-semibold" href="/dashboard">Dashboard</a>
+					} else {
+						<a class="block px-4 py-3 text-slate-700 hover:bg-slate-50" href="/dashboard">Dashboard</a>
+					}
+
+					if active == "history" {
+						<a class="block px-4 py-3 bg-slate-50 text-slate-900 font-semibold" href="/history">History</a>
+					} else {
+						<a class="block px-4 py-3 text-slate-700 hover:bg-slate-50" href="/history">History</a>
+					}
+
+					if active == "account" {
+						<a class="block px-4 py-3 bg-slate-50 text-slate-900 font-semibold" href="/account">Account</a>
+					} else {
+						<a class="block px-4 py-3 text-slate-700 hover:bg-slate-50" href="/account">Account</a>
+					}
+
+					<button
+						@click="$store.auth && $store.auth.logout ? $store.auth.logout() : (window.location.href='/login')"
+						class="w-full text-left block px-4 py-3 text-slate-700 hover:bg-slate-50">
+						Logout
+					</button>
+				</div>
 			</div>
+
+			<div class="flex items-center gap-3">
+				</div>
 		</div>
 	</header>
 }
