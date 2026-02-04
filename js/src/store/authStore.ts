@@ -144,7 +144,7 @@ export function authStore() {
       this.loading = true;
       this.error = null;
 
-      if (this.password !== this.confirmPassword) {
+      if (this.confirmPassword && this.password !== this.confirmPassword) {
         this.error = 'Passwords do not match';
         this.loading = false;
         return;
