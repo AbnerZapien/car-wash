@@ -73,7 +73,7 @@ templ Index(vm IndexVM) {
     next() { this.i = (this.i + 1) % this.images.length },
     prev() { this.i = (this.i - 1 + this.images.length) % this.images.length },
     go(n) { this.i = n },
-    start() { this.stop(); this.t = setInterval(() => this.next(), 5000) },
+    start() { this.stop(); this.t = setInterval(() => this.next(), 3000) },
     stop() { if (this.t) { clearInterval(this.t); this.t = null } },
   }"
   x-init="start()"
