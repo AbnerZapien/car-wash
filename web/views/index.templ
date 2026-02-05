@@ -60,7 +60,7 @@ templ Index(vm IndexVM) {
 						<div class="relative">
 							<div class="rounded-3xl bg-slate-100 p-4 shadow-xl border border-slate-200">
 								<div
-  class="relative"
+  class="relative h-[420px] overflow-hidden rounded-2xl"
   x-data="{
     i: 0,
     t: null,
@@ -86,7 +86,7 @@ templ Index(vm IndexVM) {
       x-transition.opacity.duration.350ms
       :src="img.src"
       :alt="img.alt"
-      class="w-full h-[420px] object-cover rounded-2xl"
+      class="absolute inset-0 w-full h-full object-cover"
       loading="lazy"
     />
   </template>
