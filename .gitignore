@@ -32,3 +32,5 @@ db/test.db
 # local backups
 *.bak
 *.bak.*
+
+exports/
