@@ -273,29 +273,21 @@ templ Portal(vm PortalVM) {
 						</div>
 					</div>
 				</div>
-				<!-- Service Performance -->
-				<div x-show="activeNav === 'dashboard'">
-					<h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">Service Performance</h2>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-						<div class="bg-white p-3 md:p-4 rounded-xl shadow-sm flex justify-between items-center">
-							<span class="text-slate-800 font-medium text-sm md:text-base">Car Wash Service Completion Time</span>
-							<div class="flex items-center space-x-1 md:space-x-2 text-slate-400">
-								<span class="material-icons-outlined text-lg hidden sm:inline">info_outline</span>
-								<span class="material-icons-outlined text-lg">more_horiz</span>
-								<span class="material-icons-outlined text-lg cursor-pointer hover:text-indigo-600">download</span>
+				<!-- Data exports -->
+					<div x-show="activeNav === 'dashboard'">
+						<h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">Data exports</h2>
+						<div class="bg-white p-4 md:p-6 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
+							<div>
+								<div class="text-slate-800 font-semibold">Download CSV</div>
+								<div class="text-slate-500 text-sm mt-1">Use exports for reporting and reconciliation.</div>
 							</div>
-						</div>
-						<div class="bg-white p-3 md:p-4 rounded-xl shadow-sm flex justify-between items-center">
-							<span class="text-slate-800 font-medium text-sm md:text-base">Customer Satisfaction Score</span>
-							<div class="flex items-center space-x-1 md:space-x-2 text-slate-400">
-								<span class="material-icons-outlined text-lg hidden sm:inline">info_outline</span>
-								<span class="material-icons-outlined text-lg">more_horiz</span>
-								<span class="material-icons-outlined text-lg cursor-pointer hover:text-indigo-600">download</span>
+							<div class="flex flex-wrap gap-3">
+								<a href="/api/v1/admin/export/memberships.csv" class="h-10 px-4 rounded-2xl bg-black text-white font-semibold hover:bg-slate-900">Export memberships CSV</a>
+								<a href="/api/v1/admin/export/wash_events.csv" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50">Export wash events CSV</a>
 							</div>
 						</div>
 					</div>
-				</div>
-				<!-- Members Section -->
+					<!-- Members Section -->
 				<div x-show="activeNav === 'members'" x-cloak>
 					<h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">Members</h2>
 					<!-- Desktop Table View -->
