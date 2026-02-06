@@ -22,16 +22,74 @@ function myCarsStoreVIN(baseFactoryArg) {
     vinCandidate: "",
     vinScanError: "",
 
+    vinStream: null,
+    vinCameraError: "",
+
     openVINScanner() {
       this.vinScanError = "";
+      this.vinCameraError = "";
       this.vinCandidate = (this.form?.vin || "");
       this.vinScannerOpen = true;
+      this.$nextTick(() => this.startVINCamera());
     },
 
     closeVINScanner() {
+      this.stopVINCamera();
       this.vinScannerOpen = false;
       this.vinScanError = "";
+      this.vinCameraError = "";
     },
+
+    async startVINCamera() {
+      if (!this.vinScannerOpen) return;
+      this.vinCameraError = "";
+      this.vinScanError = "";
+      try {
+        if (!navigator?.mediaDevices?.getUserMedia) {
+          this.vinCameraError = "Camera not supported in this browser.";
+          return;
+        }
+
+        this.stopVINCamera();
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+
+        this.vinStream = stream;
+
+        const video = this.$refs?.vinVideo;
+        if (!video) {
+          this.vinCameraError = "Camera element not found.";
+          this.stopVINCamera();
+          return;
+        }
+
+        video.srcObject = stream;
+
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === "function") {
+          await playPromise;
+        }
+      } catch (e) {
+        this.vinCameraError = (e && e.message) ? e.message : "Could not access camera.";
+        this.stopVINCamera();
+      }
+    },
+
+    stopVINCamera() {
+      const video = this.$refs?.vinVideo;
+      if (video && video.srcObject) {
+        try { video.pause(); } catch (_) {}
+        video.srcObject = null;
+      }
+      if (this.vinStream && this.vinStream.getTracks) {
+        try { this.vinStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+      }
+      this.vinStream = null;
+    },
+
 
     confirmScannedVIN() {
       const v = (this.vinCandidate || "").trim();
