@@ -450,7 +450,7 @@ Point your camera at the VIN barcode (often Code 39). If scanning fails, you can
 <div x-show="vinCameraError" x-cloak class="mt-2 text-sm text-red-700" x-text="vinCameraError"></div>
 <div class="mt-3 flex flex-wrap gap-2">
   <button type="button" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50 disabled:opacity-60" :disabled="!vinStream" @click="takeVINPhoto()">Take photo</button>
-  <button type="button" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50 disabled:opacity-60" :disabled="!vinPhotoDataUrl || vinOcrBusy" @click="runVINOCR()"><span x-text="vinOcrBusy ? \'Recognizing...\' : \'Run OCR\'"></span></button>
+  <button type="button" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50 disabled:opacity-60" :disabled="!vinPhotoDataUrl || vinOcrBusy" @click="runVINOCR()"><span x-text="vinOcrBusy ? 'Recognizing...' : 'Run OCR'"></span></button>
   <button type="button" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50" x-show="vinPhotoDataUrl" x-cloak @click="clearVINPhoto()">Clear</button>
 </div>
 <div x-show="vinPhotoDataUrl" x-cloak class="mt-3 rounded-2xl border border-slate-200 overflow-hidden bg-black">
