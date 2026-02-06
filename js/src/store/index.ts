@@ -8,6 +8,11 @@ import { accountStore } from './accountStore';
 import { adminStore } from './adminStore';
 import { landingStore } from './landingStore';
 import { myCarsStore } from './myCarsStore';
+
+if (typeof window !== "undefined") {
+  (window as any).myCarsStore = myCarsStore;
+}
+
 import { choosePlanStore } from './choosePlanStore';
 
 export function registerStores() {
