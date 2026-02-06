@@ -311,7 +311,7 @@ x-show="(form.vin || '').trim().length === 17"
 </div>
 
 <div x-show="vinScannerOpen" x-cloak class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-<div class="rounded-2xl overflow-hidden bg-black">
+<div x-show="vinStream" x-cloak class="rounded-2xl overflow-hidden bg-black">
 <video x-ref="vinVideo" class="w-full h-52 object-cover" autoplay playsinline muted></video>
 </div>
 
