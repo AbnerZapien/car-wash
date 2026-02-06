@@ -146,15 +146,24 @@ function myCarsStoreVIN(baseFactoryArg) {
         this.vinOcrError = "Camera is not ready yet.";
         return;
       }
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+    
+      const rx = Math.floor(vw * 0.10);
+      const ry = Math.floor(vh * 0.35);
+      const rw = Math.floor(vw * 0.80);
+      const rh = Math.floor(vh * 0.30);
+    
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = rw * 2;
+      canvas.height = rh * 2;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         this.vinOcrError = "Could not capture image.";
         return;
       }
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+      ctx.drawImage(video, rx, ry, rw, rh, 0, 0, canvas.width, canvas.height);
       try {
         this.vinPhotoDataUrl = canvas.toDataURL("image/jpeg", 0.92);
       } catch (_) {
@@ -427,8 +436,12 @@ x-show="(form.vin || '').trim().length === 17"
 </div>
 
 <div x-show="vinScannerOpen" x-cloak class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-<div x-show="vinStream" x-cloak class="rounded-2xl overflow-hidden bg-black">
+<div x-show="vinStream" x-cloak class="rounded-2xl overflow-hidden bg-black relative">
 <video x-ref="vinVideo" class="w-full h-52 object-cover" autoplay playsinline muted></video>
+<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+  <div class="w-[80%] h-[30%] rounded-2xl border-2 border-white/70"></div>
+</div>
+
 </div>
 
 <div class="mt-3 text-sm text-slate-600">
