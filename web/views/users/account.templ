@@ -29,8 +29,7 @@ function myCarsStoreVIN(baseFactoryArg) {
     openVINScanner() {
       this.vinScanError = "";
       this.vinCameraError = "";
-      this.vinCandidate = (this.form?.vin || "");
-      this.vinScannerOpen = true;
+      this.vinCandidate = ((this.form?.vin || "")).replace(/[^A-Za-z0-9]/g, "").toUpperCase();this.vinScannerOpen = true;
       this.$nextTick(() => this.startVINCamera());
     },
 
@@ -140,10 +139,16 @@ function myCarsStoreVIN(baseFactoryArg) {
 
 
     confirmScannedVIN() {
-      const v = (this.vinCandidate || "").trim();
+      const raw = (this.vinCandidate || "");
+      const v = raw.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      if (v.length !== 17 || !/^[A-HJ-NPR-Z0-9]{17}$/.test(v)) {
+        this.vinScanError = "Please enter a valid 17-character VIN (letters/digits; no I, O, or Q).";
+        return;
+      }
       this.form.vin = v;
       this.closeVINScanner();
     },
+
 
     closeModal() {
       if (this.vinScannerOpen) this.closeVINScanner();
