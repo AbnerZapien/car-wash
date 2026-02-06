@@ -95,17 +95,16 @@ function myCarsStoreVIN(baseFactoryArg) {
           try {
             const codes = await detector.detect(video);
             if (codes && codes.length) {
-              const raw = (codes[0].rawValue || "").toString();
-              const cleaned = raw.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-              const mm = cleaned.match(/[A-HJ-NPR-Z0-9]{17}/);
-              if (mm) {
-                this.vinCandidate = mm[0];
+              const raw = (codes[0] && (codes[0].rawValue || "")) || "";
+              const vin = raw.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+              if (vin.length === 17 && /^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
+                this.vinCandidate = vin;
                 this.vinScanError = "";
                 this.stopVINCamera();
                 return;
               }
             }
-          } catch (_) {}
+} catch (_) {}
 
           this.vinScanTimer = setTimeout(tick, 250);
         };
