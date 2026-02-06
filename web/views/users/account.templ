@@ -32,6 +32,9 @@ function myCarsStoreVIN(baseFactoryArg) {
     vinScanTimer: null,
     openVINScanner() {
       this.vinScanError = "";
+      this.vinOcrError = "";
+      this.vinOcrBusy = false;
+      this.vinPhotoDataUrl = "";
       this.vinCameraError = "";
       this.vinCandidate = ((this.form?.vin || "")).replace(/[^A-Za-z0-9]/g, "").toUpperCase();this.vinScannerOpen = true;
       this.$nextTick(() => this.startVINCamera());
@@ -39,6 +42,10 @@ function myCarsStoreVIN(baseFactoryArg) {
 
     closeVINScanner() {
       this.stopVINCamera();
+      this.stopVINOcrWorker();
+      this.vinOcrBusy = false;
+      this.vinOcrError = "";
+      this.vinPhotoDataUrl = "";
       this.vinScannerOpen = false;
       this.vinScanError = "";
       this.vinCameraError = "";
@@ -226,6 +233,15 @@ function myCarsStoreVIN(baseFactoryArg) {
         return null;
       }
     },
+
+    stopVINOcrWorker() {
+      const w = this.vinOcrWorker;
+      if (w && typeof w.terminate === "function") {
+        try { Promise.resolve(w.terminate()).catch(() => {}); } catch (_) {}
+      }
+      this.vinOcrWorker = null;
+    },
+
 
     async runVINOCR() {
       this.vinOcrError = "";
