@@ -27,6 +27,7 @@ function myCarsStoreVIN(baseFactoryArg) {
     vinPhotoDataUrl: "",
     vinOcrError: "",
     vinOcrBusy: false,
+    vinOcrWorker: null,
 
     vinScanTimer: null,
     openVINScanner() {
@@ -165,6 +166,89 @@ function myCarsStoreVIN(baseFactoryArg) {
       this.vinPhotoDataUrl = "";
       this.vinOcrError = "";
     },
+
+    async ensureVINOcrWorker() {
+      if (this.vinOcrWorker) return this.vinOcrWorker;
+      this.vinOcrError = "";
+
+      if (typeof window === "undefined" || typeof document === "undefined") {
+        this.vinOcrError = "OCR not supported in this environment.";
+        return null;
+      }
+
+      const loadScriptOnce = (src) => new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-vin-ocr="tesseract"]');
+        if (existing) {
+          if (window.Tesseract && typeof window.Tesseract.createWorker === "function") return resolve();
+          existing.addEventListener("load", () => resolve(), { once: true });
+          existing.addEventListener("error", () => reject(new Error("Failed to load OCR engine.")), { once: true });
+          return;
+        }
+        const tag = document.createElement("script");
+        tag.async = true;
+        tag.src = src;
+        tag.dataset.vinOcr = "tesseract";
+        tag.onload = () => resolve();
+        tag.onerror = () => reject(new Error("Failed to load OCR engine."));
+        document.head.appendChild(tag);
+      });
+
+      try {
+        if (!window.Tesseract || typeof window.Tesseract.createWorker !== "function") {
+          await loadScriptOnce("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
+        }
+
+        if (!window.Tesseract || typeof window.Tesseract.createWorker !== "function") {
+          this.vinOcrError = "OCR engine not available.";
+          return null;
+        }
+
+        const worker = await window.Tesseract.createWorker("eng");
+        await worker.setParameters({
+          tessedit_pageseg_mode: "7",
+          tessedit_char_whitelist: "ABCDEFGHJKLMNPRSTUVWXYZ0123456789",
+          preserve_interword_spaces: "1",
+        });
+
+        this.vinOcrWorker = worker;
+        return worker;
+      } catch (e) {
+        this.vinOcrError = (e && getattr(e, "message", None)) or "Could not initialize OCR.";
+        return null;
+      }
+    },
+
+    async runVINOCR() {
+      this.vinOcrError = "";
+      if (!this.vinPhotoDataUrl) {
+        this.vinOcrError = "Take a photo first.";
+        return;
+      }
+
+      this.vinOcrBusy = true;
+      try {
+        const worker = await this.ensureVINOcrWorker();
+        if (!worker) return;
+
+        const ret = await worker.recognize(this.vinPhotoDataUrl);
+        const text = (ret && ret.data && ret.data.text) ? ret.data.text : "";
+        const cleaned = String(text).toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const matches = cleaned.match(/[A-HJ-NPR-Z0-9]{17}/g) || [];
+
+        if (!matches.length) {
+          this.vinOcrError = "Could not read a VIN. Retake the photo with better focus/lighting.";
+          return;
+        }
+
+        this.vinCandidate = matches[0];
+        this.vinScanError = "";
+      } catch (e) {
+        this.vinOcrError = (e && e.message) ? e.message : "OCR failed.";
+      } finally {
+        this.vinOcrBusy = false;
+      }
+    },
+
 
 
 
@@ -353,6 +437,7 @@ Point your camera at the VIN barcode (often Code 39). If scanning fails, you can
 <div x-show="vinCameraError" x-cloak class="mt-2 text-sm text-red-700" x-text="vinCameraError"></div>
 <div class="mt-3 flex flex-wrap gap-2">
   <button type="button" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50 disabled:opacity-60" :disabled="!vinStream" @click="takeVINPhoto()">Take photo</button>
+  <button type="button" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50 disabled:opacity-60" :disabled="!vinPhotoDataUrl || vinOcrBusy" @click="runVINOCR()"><span x-text="vinOcrBusy ? \'Recognizing...\' : \'Run OCR\'"></span></button>
   <button type="button" class="h-10 px-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50" x-show="vinPhotoDataUrl" x-cloak @click="clearVINPhoto()">Clear</button>
 </div>
 <div x-show="vinPhotoDataUrl" x-cloak class="mt-3 rounded-2xl border border-slate-200 overflow-hidden bg-black">
