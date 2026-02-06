@@ -27,6 +27,8 @@ func (a *AdminAPIService) WithDB(db *sqlx.DB) *AdminAPIService {
 
 func (a *AdminAPIService) RegisterRoutes() {
 	g := a.httpService.Group("/admin", a.requireAdmin)
+	g.GET("/export/memberships.csv", a.ExportMembershipsCSV)
+	g.GET("/export/wash_events.csv", a.ExportWashEventsCSV)
 	g.GET("/members", a.ListMembers)
 	g.GET("/members/:id", a.GetMemberDetail)
 	g.DELETE("/users/:id", a.DeleteUser)
@@ -61,6 +63,16 @@ func (a *AdminAPIService) requireAdmin(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		if token == "" {
 			if ck, err := c.Cookie("session_token"); err == nil {
+				token = ck.Value
+			}
+		}
+		if token == "" {
+			if ck, err := c.Cookie("Auth"); err == nil {
+				token = ck.Value
+			}
+		}
+		if token == "" {
+			if ck, err := c.Cookie("token"); err == nil {
 				token = ck.Value
 			}
 		}
